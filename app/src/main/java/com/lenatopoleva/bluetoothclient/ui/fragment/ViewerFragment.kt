@@ -1,21 +1,28 @@
 package com.lenatopoleva.bluetoothclient.ui.fragment
 
+import android.app.Activity
+import android.bluetooth.BluetoothAdapter
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import com.lenatopoleva.bluetoothclient.App
+import com.lenatopoleva.bluetoothclient.R
 import com.lenatopoleva.bluetoothclient.databinding.ViewerFragmentBinding
 import com.lenatopoleva.bluetoothclient.mvp.presenter.ViewerPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.ViewerView
 import com.lenatopoleva.bluetoothclient.ui.BackButtonListener
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
+import javax.inject.Inject
 
 class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
 
     companion object {
         fun newInstance() = ViewerFragment()
+        const val REQUEST_ENABLE_BLUETOOTH = 1
     }
 
     private var _binding: ViewerFragmentBinding? = null
@@ -23,7 +30,8 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     // onDestroyView.
     private val binding get() = _binding!!
 
-    val presenter by moxyPresenter { ViewerPresenter().apply { App.instance.appComponent.inject(this) } }
+    val presenter by moxyPresenter { ViewerPresenter()
+        .apply { App.instance.appComponent.inject(this) } }
 
     override fun onCreateView(
         inflater: LayoutInflater,

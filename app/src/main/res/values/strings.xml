@@ -5,4 +5,5 @@
     <string name="paired_devices">Paired devices</string>
     <string name="other_available_devices">Other available devices</string>
     <string name="none_paired">No devices paired</string>
+    <string name="bt_not_enabled_leaving">Bluetooth was not enabled. Leaving.</string>
 </resources>

@@ -1,20 +1,25 @@
 package com.lenatopoleva.bluetoothclient.ui.fragment
 
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import com.lenatopoleva.bluetoothclient.R
+import com.lenatopoleva.bluetoothclient.App
 import com.lenatopoleva.bluetoothclient.mvp.model.Device
+import javax.inject.Inject
 
 class BluetoothService() {
 
-    private val bluetoothAdapter by lazy {
-        BluetoothAdapter.getDefaultAdapter()
-    }
+//    private val bluetoothAdapter by lazy {
+//        BluetoothAdapter.getDefaultAdapter()
+//    }
+
+    @Inject
+    @JvmField
+    var bluetoothAdapter: BluetoothAdapter? = null
 
     private var pairedDevices: MutableList<Device>? = null
+
+    init {
+        App.instance.appComponent.inject(this)
+    }
 
     fun getPairedDevices(): MutableList<Device> {
         val bluetoothDevicesSet = bluetoothAdapter?.bondedDevices
@@ -28,13 +33,13 @@ class BluetoothService() {
     }
 
     fun cancelSearch() {
-        if (bluetoothAdapter != null && bluetoothAdapter.isDiscovering){
-            bluetoothAdapter.cancelDiscovery()
+        if (bluetoothAdapter != null && bluetoothAdapter!!.isDiscovering){
+            bluetoothAdapter!!.cancelDiscovery()
         }
     }
 
     fun startSearch() {
-        if (bluetoothAdapter != null) bluetoothAdapter.startDiscovery()
+        if (bluetoothAdapter != null) bluetoothAdapter!!.startDiscovery()
     }
 
 }
