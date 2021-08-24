@@ -8,4 +8,5 @@ interface ConnectionView: MvpView {
     fun init()
     fun updatePairedDevicesList()
     fun updateNewDevicesList()
+    fun saveDeviceAddress(address: String)
 }

@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import com.google.android.material.appbar.MaterialToolbar
 import com.lenatopoleva.bluetoothclient.App
 import com.lenatopoleva.bluetoothclient.R
 import com.lenatopoleva.bluetoothclient.databinding.ActivityMainBinding
@@ -38,6 +39,8 @@ class MainActivity : MvpAppCompatActivity(), MainView {
     @JvmField
     var bluetoothAdapter: BluetoothAdapter? = null
 
+    lateinit var topAppBar: MaterialToolbar
+
     init {
         App.instance.appComponent.inject(this)
     }
@@ -46,6 +49,7 @@ class MainActivity : MvpAppCompatActivity(), MainView {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        topAppBar = binding.topAppBar
         binding.topAppBar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.item_connection -> {

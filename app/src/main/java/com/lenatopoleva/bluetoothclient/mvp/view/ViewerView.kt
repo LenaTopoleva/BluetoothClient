@@ -1,9 +1,19 @@
 package com.lenatopoleva.bluetoothclient.mvp.view
 
-import kotlinx.coroutines.internal.AddLastDesc
 import moxy.MvpView
 import moxy.viewstate.strategy.alias.AddToEndSingle
+import moxy.viewstate.strategy.alias.Skip
 
 @AddToEndSingle
 interface ViewerView: MvpView {
+
+    @Skip
+    fun showMessage(message: String)
+
+    fun updateTextView(message: String)
+    fun hideAppBar()
+    fun hideActionBar()
+    fun showAppBar()
+    fun showActionBar()
+
 }

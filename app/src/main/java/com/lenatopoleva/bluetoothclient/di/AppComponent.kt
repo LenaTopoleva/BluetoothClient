@@ -8,7 +8,7 @@ import com.lenatopoleva.bluetoothclient.mvp.presenter.ConnectionPresenter
 import com.lenatopoleva.bluetoothclient.mvp.presenter.MainPresenter
 import com.lenatopoleva.bluetoothclient.mvp.presenter.ViewerPresenter
 import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity
-import com.lenatopoleva.bluetoothclient.ui.fragment.BluetoothService
+import com.lenatopoleva.bluetoothclient.ui.BluetoothServiceImpl
 import com.lenatopoleva.bluetoothclient.ui.fragment.ViewerFragment
 import dagger.Component
 import javax.inject.Singleton
@@ -28,5 +28,5 @@ interface AppComponent {
     fun inject(connectionPresenter: ConnectionPresenter)
     fun inject(mainActivity: MainActivity)
     fun inject(viewerFragment: ViewerFragment)
-    fun inject(bluetoothService: BluetoothService)
+    fun inject(bluetoothServiceImpl: BluetoothServiceImpl)
 }

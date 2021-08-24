@@ -13,10 +13,11 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lenatopoleva.bluetoothclient.App
 import com.lenatopoleva.bluetoothclient.databinding.ConnectionFragmentBinding
-import com.lenatopoleva.bluetoothclient.mvp.model.Device
+import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.presenter.ConnectionPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.ConnectionView
 import com.lenatopoleva.bluetoothclient.ui.BackButtonListener
+import com.lenatopoleva.bluetoothclient.ui.BluetoothServiceImpl
 import com.lenatopoleva.bluetoothclient.ui.adapter.DevicesListAdapter
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
@@ -32,7 +33,7 @@ class ConnectionFragment: MvpAppCompatFragment(), ConnectionView, BackButtonList
     // onDestroyView.
     private val binding get() = _binding!!
 
-    val presenter by moxyPresenter { ConnectionPresenter(BluetoothService())
+    val presenter by moxyPresenter { ConnectionPresenter(BluetoothServiceImpl())
         .apply { App.instance.appComponent.inject(this) }
     }
 
@@ -93,6 +94,10 @@ class ConnectionFragment: MvpAppCompatFragment(), ConnectionView, BackButtonList
 
     override fun updateNewDevicesList() {
         newDevicesAdapter.notifyDataSetChanged()
+    }
+
+    override fun saveDeviceAddress(address: String) {
+        activity
     }
 
     override fun backPressed() = presenter.backClick()

@@ -1,19 +1,22 @@
 package com.lenatopoleva.bluetoothclient.mvp.presenter
 
-import com.lenatopoleva.bluetoothclient.mvp.model.Device
+import com.lenatopoleva.bluetoothclient.mvp.model.IBluetoothService
+import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
+import com.lenatopoleva.bluetoothclient.mvp.model.repository.IRepository
 import com.lenatopoleva.bluetoothclient.mvp.presenter.list.IDevicesListPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.ConnectionView
 import com.lenatopoleva.bluetoothclient.mvp.view.list.DeviceItemView
-import com.lenatopoleva.bluetoothclient.ui.fragment.BluetoothService
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import moxy.MvpPresenter
 import ru.terrakok.cicerone.Router
 import javax.inject.Inject
 
-class ConnectionPresenter(private val bluetoothService: BluetoothService): MvpPresenter<ConnectionView>() {
+class ConnectionPresenter(private val bluetoothServiceImpl: IBluetoothService): MvpPresenter<ConnectionView>() {
 
     @Inject
     lateinit var router: Router
+    @Inject
+    lateinit var repository: IRepository
 
     val pairedDevicesListPresenter = PairedDevicesListPresenter()
     val newDevicesListPresenter = NewDevicesListPresenter()
@@ -53,18 +56,31 @@ class ConnectionPresenter(private val bluetoothService: BluetoothService): MvpPr
         getPairedDevices()
         viewState.updatePairedDevicesList()
         searchNewDevices()
+
+        pairedDevicesListPresenter.itemClickListener = { view ->
+            bluetoothServiceImpl.cancelSearch()
+            repository.saveDeviceAddress(pairedDevicesListPresenter.pairedDevices[view.pos].address)
+            println("Connecting address: ${repository.getDeviceAddress()}")
+            router.exit()
+        }
+        newDevicesListPresenter.itemClickListener = { view ->
+            bluetoothServiceImpl.cancelSearch()
+            repository.saveDeviceAddress(newDevicesListPresenter.newDevices[view.pos].address)
+            println("Connecting address: ${repository.getDeviceAddress()}")
+            router.exit()
+        }
     }
 
     private fun getPairedDevices() {
-        val pairedDevices = bluetoothService.getPairedDevices()
+        val pairedDevices = bluetoothServiceImpl.getPairedDevices()
         pairedDevicesListPresenter.pairedDevices.clear()
         pairedDevicesListPresenter.pairedDevices.addAll(pairedDevices)
     }
 
     private fun searchNewDevices(){
         // show progress
-        bluetoothService.cancelSearch()
-        bluetoothService.startSearch()
+        bluetoothServiceImpl.cancelSearch()
+        bluetoothServiceImpl.startSearch()
     }
 
     fun newDeviceFound(device: Device) {
@@ -74,7 +90,7 @@ class ConnectionPresenter(private val bluetoothService: BluetoothService): MvpPr
 
     fun searchForDevicesFinished() {
         // finish progress
-        if (newDevicesListPresenter.newDevices.size == 0) newDeviceFound(Device("No devices found"))
+        if (newDevicesListPresenter.newDevices.size == 0)
         println("searchForDevicesFinished")
     }
 
@@ -100,7 +116,7 @@ class ConnectionPresenter(private val bluetoothService: BluetoothService): MvpPr
     }
 
     fun onFragmentDestroy() {
-        bluetoothService.cancelSearch()
+        bluetoothServiceImpl.cancelSearch()
     }
 
 }
