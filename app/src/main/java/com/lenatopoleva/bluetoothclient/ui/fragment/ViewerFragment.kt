@@ -1,6 +1,7 @@
 package com.lenatopoleva.bluetoothclient.ui.fragment
 
 import android.bluetooth.BluetoothAdapter
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,11 +10,14 @@ import android.view.WindowManager
 import android.widget.Toast
 import com.lenatopoleva.bluetoothclient.App
 import com.lenatopoleva.bluetoothclient.databinding.ViewerFragmentBinding
+import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.presenter.ViewerPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.ViewerView
 import com.lenatopoleva.bluetoothclient.ui.BackButtonListener
-import com.lenatopoleva.bluetoothclient.ui.BluetoothServiceImpl
 import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity
+import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.DEVICE_ADDRESS
+import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.DEVICE_NAME
+import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.MY_PREFS_NAME
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
 import javax.inject.Inject
@@ -30,7 +34,7 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     // onDestroyView.
     private val binding get() = _binding!!
 
-    val presenter by moxyPresenter { ViewerPresenter(BluetoothServiceImpl())
+    val presenter by moxyPresenter { ViewerPresenter()
         .apply { App.instance.appComponent.inject(this) } }
 
     @Inject
@@ -53,7 +57,10 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
 
     override fun onStart() {
         super.onStart()
-        presenter.onStart()
+        val sharedPreferences = activity?.getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
+        val deviceAddress = sharedPreferences?.getString(DEVICE_ADDRESS, null)
+        val deviceName = sharedPreferences?.getString(DEVICE_NAME, null)
+        presenter.onStart( Device(deviceName?: "", deviceAddress?: "") )
     }
 
     override fun showMessage(message: String) {

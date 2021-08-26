@@ -64,8 +64,8 @@ class BluetoothServiceImpl(): IBluetoothService {
         val outputStream = socket?.outputStream
 
         return Observable.create<ByteArray> { emitter ->
+            val buffer = ByteArray(4000)
             while(true) {
-                val buffer = ByteArray(4000)
                 inputStream?.read(buffer)
                 emitter.onNext(buffer)
             }

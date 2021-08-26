@@ -2,14 +2,12 @@ package com.lenatopoleva.bluetoothclient.ui.fragment
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lenatopoleva.bluetoothclient.App
 import com.lenatopoleva.bluetoothclient.databinding.ConnectionFragmentBinding
@@ -17,7 +15,9 @@ import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.presenter.ConnectionPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.ConnectionView
 import com.lenatopoleva.bluetoothclient.ui.BackButtonListener
-import com.lenatopoleva.bluetoothclient.ui.BluetoothServiceImpl
+import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.DEVICE_ADDRESS
+import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.DEVICE_NAME
+import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.MY_PREFS_NAME
 import com.lenatopoleva.bluetoothclient.ui.adapter.DevicesListAdapter
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
@@ -33,7 +33,7 @@ class ConnectionFragment: MvpAppCompatFragment(), ConnectionView, BackButtonList
     // onDestroyView.
     private val binding get() = _binding!!
 
-    val presenter by moxyPresenter { ConnectionPresenter(BluetoothServiceImpl())
+    val presenter by moxyPresenter { ConnectionPresenter()
         .apply { App.instance.appComponent.inject(this) }
     }
 
@@ -98,6 +98,20 @@ class ConnectionFragment: MvpAppCompatFragment(), ConnectionView, BackButtonList
 
     override fun saveDeviceAddress(address: String) {
         activity
+    }
+
+    override fun showMessage(message: String) {
+        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+    }
+
+    override fun saveDeviceToSharedPreferences(device: Device) {
+        val sharedPreferences = activity?.getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
+        val editor: SharedPreferences.Editor? = sharedPreferences?.edit()
+        if(editor != null) {
+            editor.putString(DEVICE_ADDRESS, device.address)
+            editor.putString(DEVICE_NAME, device.name)
+            editor.apply()
+        }
     }
 
     override fun backPressed() = presenter.backClick()

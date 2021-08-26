@@ -1,22 +1,29 @@
 package com.lenatopoleva.bluetoothclient.mvp.presenter
 
 import com.lenatopoleva.bluetoothclient.mvp.model.IBluetoothService
+import com.lenatopoleva.bluetoothclient.mvp.model.entity.ConnectingStatus
 import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.model.repository.IRepository
 import com.lenatopoleva.bluetoothclient.mvp.presenter.list.IDevicesListPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.ConnectionView
 import com.lenatopoleva.bluetoothclient.mvp.view.list.DeviceItemView
+import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import moxy.MvpPresenter
 import ru.terrakok.cicerone.Router
 import javax.inject.Inject
 
-class ConnectionPresenter(private val bluetoothServiceImpl: IBluetoothService): MvpPresenter<ConnectionView>() {
+class ConnectionPresenter(): MvpPresenter<ConnectionView>() {
 
     @Inject
     lateinit var router: Router
     @Inject
     lateinit var repository: IRepository
+    @Inject
+    lateinit var uiScheduler: Scheduler
+    @Inject
+    lateinit var bluetoothServiceImpl: IBluetoothService
+
 
     val pairedDevicesListPresenter = PairedDevicesListPresenter()
     val newDevicesListPresenter = NewDevicesListPresenter()
@@ -58,17 +65,36 @@ class ConnectionPresenter(private val bluetoothServiceImpl: IBluetoothService): 
         searchNewDevices()
 
         pairedDevicesListPresenter.itemClickListener = { view ->
+            view.showConnectingStatus("Connecting...")
             bluetoothServiceImpl.cancelSearch()
-            repository.saveDeviceAddress(pairedDevicesListPresenter.pairedDevices[view.pos].address)
-            println("Connecting address: ${repository.getDeviceAddress()}")
-            router.exit()
+            tryToConnect(pairedDevicesListPresenter.pairedDevices[view.pos], view)
         }
         newDevicesListPresenter.itemClickListener = { view ->
+            view.showConnectingStatus("Connecting...")
             bluetoothServiceImpl.cancelSearch()
-            repository.saveDeviceAddress(newDevicesListPresenter.newDevices[view.pos].address)
-            println("Connecting address: ${repository.getDeviceAddress()}")
-            router.exit()
+            tryToConnect(pairedDevicesListPresenter.pairedDevices[view.pos], view)
         }
+    }
+
+    private fun tryToConnect(device: Device, itemView: DeviceItemView){
+        disposables.add(bluetoothServiceImpl.connectToDevice(device.address)
+            .observeOn(uiScheduler)
+            .subscribe(
+                    {   device.status = ConnectingStatus.CONNECTED
+                        repository.saveDevice(device)
+                        itemView.hideConnectionStatus()
+                        println("Device connected")
+                        viewState.showMessage("Device connected")
+                        viewState.saveDeviceToSharedPreferences(device)
+                        router.exit()
+                    },
+                    {
+                        itemView.hideConnectionStatus()
+                        viewState.showMessage("Unable to connect device: ${it.message}")
+                        println("Unable to connect device: ${it.message}")
+                        bluetoothServiceImpl.closeSocket()
+                    }
+            ))
     }
 
     private fun getPairedDevices() {

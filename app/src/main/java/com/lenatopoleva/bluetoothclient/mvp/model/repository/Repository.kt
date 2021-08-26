@@ -1,13 +1,16 @@
 package com.lenatopoleva.bluetoothclient.mvp.model.repository
 
+import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
+
+
 class Repository: IRepository {
 
-    private var address: String? = null
+    private var device: Device? = null
 
-    override fun saveDeviceAddress(address: String) {
-        this.address = address
+    override fun saveDevice(device: Device) {
+        this.device = device
     }
 
-    override fun getDeviceAddress() = address
+    override fun getDevice(): Device? = device
 
 }

@@ -23,6 +23,9 @@ class MainActivity : MvpAppCompatActivity(), MainView {
 
     companion object {
         const val REQUEST_ENABLE_BLUETOOTH = 1
+        const val MY_PREFS_NAME = "mySharedPreferences"
+        const val DEVICE_ADDRESS = "deviceAddress"
+        const val DEVICE_NAME = "deviceName"
     }
 
     private lateinit var binding: ActivityMainBinding
@@ -33,7 +36,7 @@ class MainActivity : MvpAppCompatActivity(), MainView {
 
     @Inject
     lateinit var navigatorHolder: NavigatorHolder
-    val navigator = SupportAppNavigator(this, supportFragmentManager, R.id.container)
+    private val navigator = SupportAppNavigator(this, supportFragmentManager, R.id.container)
 
     @Inject
     @JvmField

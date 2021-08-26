@@ -1,6 +1,8 @@
 package com.lenatopoleva.bluetoothclient.ui.adapter
 
 import android.view.LayoutInflater
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.lenatopoleva.bluetoothclient.databinding.ItemDeviceBinding
@@ -45,6 +47,15 @@ class DevicesListAdapter(val presenter: IDevicesListPresenter): RecyclerView.Ada
 
         override fun setDeviceAddress(address: String) {
             binding.tvDeviceAddress.text = address
+        }
+
+        override fun showConnectingStatus(connection: String) {
+            binding.tvConnectingStatus.visibility = VISIBLE
+            binding.tvConnectingStatus.text = connection
+        }
+
+        override fun hideConnectionStatus() {
+            binding.tvConnectingStatus.visibility = GONE
         }
     }
 }

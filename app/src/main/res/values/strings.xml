@@ -2,8 +2,8 @@
     <string name="app_name">BluetoothClient</string>
     <string name="connect">Connect</string>
     <string name="device_is_not_connected">Device is not connected.</string>
-    <string name="paired_devices">Paired devices</string>
-    <string name="other_available_devices">Other available devices</string>
+    <string name="paired_devices">PAIRED DEVICES</string>
+    <string name="other_available_devices">OTHER AVAILABLE DEVICES</string>
     <string name="none_paired">No devices paired</string>
     <string name="bt_not_enabled_leaving">Bluetooth was not enabled. Leaving.</string>
 </resources>
