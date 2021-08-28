@@ -105,6 +105,7 @@ class ConnectionPresenter(): MvpPresenter<ConnectionView>() {
 
     private fun searchNewDevices(){
         // show progress
+        viewState.showSearchingTextView()
         bluetoothServiceImpl.cancelSearch()
         bluetoothServiceImpl.startSearch()
     }
@@ -116,6 +117,7 @@ class ConnectionPresenter(): MvpPresenter<ConnectionView>() {
 
     fun searchForDevicesFinished() {
         // finish progress
+        viewState.hideSearchingTextView()
         if (newDevicesListPresenter.newDevices.size == 0)
         println("searchForDevicesFinished")
     }

@@ -6,6 +6,8 @@ import android.content.*
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -112,6 +114,14 @@ class ConnectionFragment: MvpAppCompatFragment(), ConnectionView, BackButtonList
             editor.putString(DEVICE_NAME, device.name)
             editor.apply()
         }
+    }
+
+    override fun showSearchingTextView() {
+        binding.tvSearching.visibility = VISIBLE
+    }
+
+    override fun hideSearchingTextView() {
+        binding.tvSearching.visibility = GONE
     }
 
     override fun backPressed() = presenter.backClick()

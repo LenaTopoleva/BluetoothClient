@@ -12,4 +12,6 @@ interface ConnectionView: MvpView {
     fun saveDeviceAddress(address: String)
     fun showMessage(s: String)
     fun saveDeviceToSharedPreferences(device: Device)
+    fun showSearchingTextView()
+    fun hideSearchingTextView()
 }
