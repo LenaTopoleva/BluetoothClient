@@ -15,5 +15,10 @@ interface ViewerView: MvpView {
     fun hideActionBar()
     fun showAppBar()
     fun showActionBar()
+    fun showImage(image: String)
+    fun hideTextView()
+    fun showImageView()
+    fun hideImageView()
+    fun showTextView()
 
 }

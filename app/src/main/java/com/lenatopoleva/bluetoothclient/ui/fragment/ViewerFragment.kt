@@ -2,9 +2,13 @@ package com.lenatopoleva.bluetoothclient.ui.fragment
 
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
@@ -90,6 +94,28 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     override fun showActionBar() {
         activity?.window?.clearFlags( WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
         activity?.actionBar?.show();
+    }
+
+    override fun showImage(image: String) {
+        val decodedByte = Base64.decode(image, Base64.DEFAULT)
+        val bitmap = BitmapFactory.decodeByteArray(decodedByte, 0, decodedByte.size)
+        binding.ivViewer.setImageBitmap(bitmap)
+    }
+
+    override fun hideTextView() {
+        binding.tvConnectionStatus.visibility = GONE
+    }
+
+    override fun showImageView() {
+        binding.ivViewer.visibility = VISIBLE
+    }
+
+    override fun hideImageView() {
+        binding.ivViewer.visibility = GONE
+    }
+
+    override fun showTextView() {
+        binding.tvConnectionStatus.visibility = VISIBLE
     }
 
     override fun backPressed() = presenter.backClick()

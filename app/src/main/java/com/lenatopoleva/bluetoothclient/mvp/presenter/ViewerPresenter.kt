@@ -1,6 +1,8 @@
 package com.lenatopoleva.bluetoothclient.mvp.presenter
 
+import com.google.gson.Gson
 import com.lenatopoleva.bluetoothclient.mvp.model.IBluetoothService
+import com.lenatopoleva.bluetoothclient.mvp.model.entity.BluetoothResponse
 import com.lenatopoleva.bluetoothclient.mvp.model.entity.ConnectingStatus
 import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.model.repository.IRepository
@@ -30,7 +32,10 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
         val device = repository.getDevice()
         val deviceStatus = device?.status
         if (device != null) {
-            if (deviceStatus == ConnectingStatus.CONNECTED) startDataTransmitting()
+            if (deviceStatus == ConnectingStatus.CONNECTED) {
+                viewState.updateTextView("Connected with ${device.name}")
+                startDataTransmitting()
+            }
             if (deviceStatus == ConnectingStatus.NOT_CONNECTED) tryToConnect(device)
         } else if (deviceFromSharedPrefs.address != "") {
             tryToConnect(deviceFromSharedPrefs)
@@ -43,6 +48,7 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
             .subscribe(
                 {   device.status = ConnectingStatus.CONNECTED
                     repository.saveDevice(device)
+                    viewState.updateTextView("Connected with ${device.name}")
                     viewState.showMessage("Device connected")
                     startDataTransmitting() },
                 {
@@ -59,21 +65,31 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
             .subscribeOn(Schedulers.io())
             .observeOn(uiScheduler)
             .subscribe(
-                {
-                    val message = it.decodeToString()
-                    viewState.updateTextView(message)
-                    viewState.hideAppBar()
-                    viewState.hideActionBar()
+                {   response ->
+                    val bluetoothResponse = Gson()
+                        .fromJson(response, BluetoothResponse::class.java)
+                    println("RESPONSE TYPE = ${bluetoothResponse.type}")
+                    if(bluetoothResponse.type == "image"){
+                        viewState.hideTextView()
+                        viewState.hideAppBar()
+                        viewState.hideActionBar()
+                        viewState.showImageView()
+                        viewState.showImage(bluetoothResponse.data)
+                    }
                 },
                 {
                     val errorMessage = it.message
-                    errorMessage?.let { viewState.updateTextView("Lost connection: $it")}
+                    errorMessage?.let {
+                        viewState.hideImageView()
+                        viewState.showTextView()
+                        viewState.updateTextView("Data transmitting exception: $it")
+                    }
                     println("Data transmitting exception: ${it.message}")
                     viewState.showAppBar()
                     viewState.showActionBar()
                 },
                 {
-                    //Do something on complete
+                    println("Data transmitting complete")
                 }))
     }
 

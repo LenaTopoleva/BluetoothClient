@@ -10,5 +10,5 @@ interface IBluetoothService {
     fun getPairedDevices(): MutableList<Device>
     fun connectToDevice(deviceAddress: String): Completable
     fun closeSocket()
-    fun startDataTransmitting(): Observable<ByteArray>
+    fun startDataTransmitting(): Observable<String>
 }
