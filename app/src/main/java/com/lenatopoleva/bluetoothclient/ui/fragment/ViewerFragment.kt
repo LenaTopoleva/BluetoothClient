@@ -3,6 +3,8 @@ package com.lenatopoleva.bluetoothclient.ui.fragment
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Bundle
 import android.util.Base64
 import android.view.LayoutInflater
@@ -24,7 +26,10 @@ import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.DEVIC
 import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.MY_PREFS_NAME
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
+import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
+
 
 class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
 
@@ -44,6 +49,9 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     @Inject
     @JvmField
     var bluetoothAdapter: BluetoothAdapter? = null
+
+    @Inject
+    lateinit var mediaPlayer: MediaPlayer
 
     init {
         App.instance.appComponent.inject(this)
@@ -116,6 +124,39 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
 
     override fun showTextView() {
         binding.tvConnectionStatus.visibility = VISIBLE
+    }
+
+    override fun startAudio(audioData: String?, audioCount: Int) {
+        if(audioData != null){
+            val decodedByte = Base64.decode(audioData, Base64.DEFAULT)
+            val tempAudioFile = File.createTempFile("${audioCount}audio", "mp3")
+            val fileOutputStream = FileOutputStream(tempAudioFile)
+            fileOutputStream.write(decodedByte)
+            fileOutputStream.close()
+
+            val tempFilePath = tempAudioFile.path
+            println("tempAudioFile path: ${tempAudioFile.path}")
+
+            presenter.audioPlaying()
+            mediaPlayer.reset()
+            mediaPlayer.setDataSource(requireContext(), Uri.fromFile(tempAudioFile))
+            mediaPlayer.setOnCompletionListener {
+                presenter.audioCompleted()
+                deleteTempAudioFile(tempFilePath)
+            }
+            mediaPlayer.prepare()
+            mediaPlayer.start()
+        }
+    }
+
+    private fun deleteTempAudioFile(path: String) {
+        println("Try to delete tempFile; path: $path")
+        val file = File(path)
+        if(file.exists()){
+            file.delete()
+            println("File deleted; path: $path")
+        }
+        else println("Not file to delete; path: $path")
     }
 
     override fun backPressed() = presenter.backClick()

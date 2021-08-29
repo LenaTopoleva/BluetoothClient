@@ -72,7 +72,7 @@ class BluetoothServiceImpl(): IBluetoothService {
                 if (availableBytesLength != null) {
                     if (availableBytesLength > 0) {
                         val buf = buffer.take(availableBytesLength).toByteArray().decodeToString()
-                        println("BUF = $buf")
+//                        println("BUF = $buf")
                         stringBuilder.append(buf)
                         buffer = ByteArray(100000)
                         if (buf.endsWith("}")) {

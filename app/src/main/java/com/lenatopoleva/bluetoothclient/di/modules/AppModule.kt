@@ -1,5 +1,6 @@
 package com.lenatopoleva.bluetoothclient.di.modules
 
+import android.media.MediaPlayer
 import com.lenatopoleva.bluetoothclient.App
 import com.lenatopoleva.bluetoothclient.mvp.model.repository.IRepository
 import com.lenatopoleva.bluetoothclient.mvp.model.repository.Repository
@@ -23,4 +24,9 @@ class AppModule(val app: App) {
     @Singleton
     @Provides
     fun repository(): IRepository = Repository()
+
+    @Singleton
+    @Provides
+    fun mediaPlayer(): MediaPlayer = MediaPlayer()
+
 }

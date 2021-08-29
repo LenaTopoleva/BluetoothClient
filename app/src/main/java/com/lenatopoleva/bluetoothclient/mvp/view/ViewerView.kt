@@ -21,4 +21,6 @@ interface ViewerView: MvpView {
     fun hideImageView()
     fun showTextView()
 
+    @Skip
+    fun startAudio(audioData: String?, audioCount: Int)
 }

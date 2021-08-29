@@ -7,9 +7,12 @@ import com.lenatopoleva.bluetoothclient.mvp.model.entity.ConnectingStatus
 import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.model.repository.IRepository
 import com.lenatopoleva.bluetoothclient.mvp.view.ViewerView
+import com.lenatopoleva.bluetoothclient.util.AUDIO_PLAYING
+import com.lenatopoleva.bluetoothclient.util.AUDIO_READY
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.rxjava3.subjects.BehaviorSubject
 import moxy.MvpPresenter
 import ru.terrakok.cicerone.Router
 import javax.inject.Inject
@@ -26,7 +29,9 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
     lateinit var bluetoothService: IBluetoothService
 
     private var disposables = CompositeDisposable()
-
+    private var newAudioFile: BehaviorSubject<String> = BehaviorSubject.create()
+    private var audioStatus: BehaviorSubject<Int> = BehaviorSubject.create()
+    private var audioCount: Int = 0
 
     fun onStart(deviceFromSharedPrefs: Device) {
         val device = repository.getDevice()
@@ -60,6 +65,15 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
     }
 
     private fun startDataTransmitting(){
+        disposables.add(newAudioFile
+            .subscribeOn(Schedulers.io())
+            .observeOn(uiScheduler)
+            .subscribe {
+                        audioCount++
+                        viewState.startAudio(newAudioFile.value, audioCount)
+                        println("START AUDIO")
+            }
+        )
         println("***Start Data Transmitting***")
         disposables.add(bluetoothService.startDataTransmitting()
             .subscribeOn(Schedulers.io())
@@ -69,12 +83,24 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
                     val bluetoothResponse = Gson()
                         .fromJson(response, BluetoothResponse::class.java)
                     println("RESPONSE TYPE = ${bluetoothResponse.type}")
-                    if(bluetoothResponse.type == "image"){
+                    if (bluetoothResponse.type == "image") {
                         viewState.hideTextView()
                         viewState.hideAppBar()
                         viewState.hideActionBar()
                         viewState.showImageView()
                         viewState.showImage(bluetoothResponse.data)
+                    }
+                    if (bluetoothResponse.type == "audio") {
+                        println("GOT AUDIO")
+                        newAudioFile.onNext(bluetoothResponse.data)
+
+                    }
+                    if (bluetoothResponse.type == "stop") {
+                        viewState.showActionBar()
+                        viewState.showAppBar()
+                        viewState.hideImageView()
+                        viewState.showTextView()
+                        viewState.updateTextView("END OF SESSION")
                     }
                 },
                 {
@@ -93,6 +119,13 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
                 }))
     }
 
+    fun audioCompleted() {
+        audioStatus.onNext(AUDIO_READY)
+    }
+
+    fun audioPlaying() {
+        audioStatus.onNext(AUDIO_PLAYING)
+    }
 
     fun backClick(): Boolean {
         router.exit()
