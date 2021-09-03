@@ -20,15 +20,14 @@ class MainPresenter: MvpPresenter<MainView>() {
 
     override fun onFirstViewAttach() {
         super.onFirstViewAttach()
-        router.replaceScreen(primaryScreen)
     }
 
     fun backClick() {
         router.exit()
     }
 
-    fun connectionMenuItemClicked() {
-        router.navigateTo(Screens.ConnectionScreen())
+    fun openViewerScreen() {
+        router.replaceScreen(primaryScreen)
     }
 
 }

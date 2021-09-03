@@ -65,14 +65,14 @@ class BluetoothServiceImpl(): IBluetoothService {
         val outputStream = socket?.outputStream
 
         return Observable.create<String> { emitter ->
-            var buffer = ByteArray(100000)
+            var buffer = ByteArray(1000)
             val stringBuilder = StringBuilder()
             while (true) {
                 val availableBytesLength = inputStream?.read(buffer)
                 if (availableBytesLength != null) {
                     if (availableBytesLength > 0) {
                         val buf = buffer.take(availableBytesLength).toByteArray().decodeToString()
-//                        println("BUF = $buf")
+                        println("BUF = $buf")
                         stringBuilder.append(buf)
                         buffer = ByteArray(100000)
                         if (buf.endsWith("}")) {

@@ -1,32 +1,29 @@
 package com.lenatopoleva.bluetoothclient.ui.activity
 
+import android.Manifest
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
-import com.google.android.material.appbar.MaterialToolbar
+import androidx.core.app.ActivityCompat
+import com.google.android.material.snackbar.Snackbar
 import com.lenatopoleva.bluetoothclient.App
 import com.lenatopoleva.bluetoothclient.R
 import com.lenatopoleva.bluetoothclient.databinding.ActivityMainBinding
 import com.lenatopoleva.bluetoothclient.mvp.presenter.MainPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.MainView
 import com.lenatopoleva.bluetoothclient.ui.BackButtonListener
-import com.lenatopoleva.bluetoothclient.ui.fragment.ViewerFragment
+import com.lenatopoleva.bluetoothclient.util.*
 import moxy.MvpAppCompatActivity
 import moxy.ktx.moxyPresenter
 import ru.terrakok.cicerone.NavigatorHolder
 import ru.terrakok.cicerone.android.support.SupportAppNavigator
 import javax.inject.Inject
 
-class MainActivity : MvpAppCompatActivity(), MainView {
 
-    companion object {
-        const val REQUEST_ENABLE_BLUETOOTH = 1
-        const val MY_PREFS_NAME = "mySharedPreferences"
-        const val DEVICE_ADDRESS = "deviceAddress"
-        const val DEVICE_NAME = "deviceName"
-    }
+class MainActivity : MvpAppCompatActivity(), MainView, ActivityCompat.OnRequestPermissionsResultCallback {
 
     private lateinit var binding: ActivityMainBinding
 
@@ -42,8 +39,6 @@ class MainActivity : MvpAppCompatActivity(), MainView {
     @JvmField
     var bluetoothAdapter: BluetoothAdapter? = null
 
-    lateinit var topAppBar: MaterialToolbar
-
     init {
         App.instance.appComponent.inject(this)
     }
@@ -52,22 +47,48 @@ class MainActivity : MvpAppCompatActivity(), MainView {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        topAppBar = binding.topAppBar
-        binding.topAppBar.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.item_connection -> {
-                    presenter.connectionMenuItemClicked()
-                    true
-                }
-                else -> false
-            }
+
+        println(">>>>>>>MAIN ACTIVITY onCreate<<<<<<<")
+        if (bluetoothAdapter != null && !(bluetoothAdapter!!.isEnabled)) {
+            createBluetoothRequestIntent()
+        }
+        if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                REQUEST_READ_EXTERNAL_STORAGE
+            )
+        } else {
+            if(savedInstanceState == null) presenter.openViewerScreen()
         }
     }
 
     override fun onStart() {
         super.onStart()
-        if (bluetoothAdapter != null && !(bluetoothAdapter!!.isEnabled)) {
-            createBluetoothRequestIntent()
+        println(">>>>>>>MAIN ACTIVITY onStart<<<<<<<")
+
+    }
+
+    override fun onResume() {
+        super.onResume()
+        println(">>>>>>>MAIN ACTIVITY onResume<<<<<<<")
+    }
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        if (requestCode == REQUEST_READ_EXTERNAL_STORAGE) {
+            if (!grantResults.containsOnly(PackageManager.PERMISSION_GRANTED)) {
+                Snackbar.make(
+                    binding.activityMain, R.string.permissions_not_granted,
+                    Snackbar.LENGTH_SHORT
+                ).setDuration(3000).show()
+                finish()
+            } else {
+                presenter.openViewerScreen()
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+            }
         }
     }
 
@@ -77,9 +98,10 @@ class MainActivity : MvpAppCompatActivity(), MainView {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        println(">>>>>>>MAIN ACTIVITY onActivityResult<<<<<<<")
         super.onActivityResult(requestCode, resultCode, data)
         when(requestCode) {
-            ViewerFragment.REQUEST_ENABLE_BLUETOOTH -> {
+            REQUEST_ENABLE_BLUETOOTH -> {
                 if (resultCode == Activity.RESULT_OK) {
                     // do smth
                 } else {
@@ -109,4 +131,5 @@ class MainActivity : MvpAppCompatActivity(), MainView {
         }
         presenter.backClick()
     }
+
 }

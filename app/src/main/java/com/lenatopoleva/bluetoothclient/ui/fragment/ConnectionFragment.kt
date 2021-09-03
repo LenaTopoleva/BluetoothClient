@@ -17,10 +17,10 @@ import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.presenter.ConnectionPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.ConnectionView
 import com.lenatopoleva.bluetoothclient.ui.BackButtonListener
-import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.DEVICE_ADDRESS
-import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.DEVICE_NAME
-import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.MY_PREFS_NAME
 import com.lenatopoleva.bluetoothclient.ui.adapter.DevicesListAdapter
+import com.lenatopoleva.bluetoothclient.util.DEVICE_ADDRESS
+import com.lenatopoleva.bluetoothclient.util.DEVICE_NAME
+import com.lenatopoleva.bluetoothclient.util.MY_PREFS_NAME
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
 

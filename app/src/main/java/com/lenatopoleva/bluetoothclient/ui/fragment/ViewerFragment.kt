@@ -1,12 +1,15 @@
 package com.lenatopoleva.bluetoothclient.ui.fragment
 
+import android.app.Activity
+import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
-import android.graphics.BitmapFactory
+import android.content.DialogInterface
+import android.content.Intent
+import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
-import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.GONE
@@ -15,19 +18,16 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
 import com.lenatopoleva.bluetoothclient.App
+import com.lenatopoleva.bluetoothclient.R
 import com.lenatopoleva.bluetoothclient.databinding.ViewerFragmentBinding
 import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.presenter.ViewerPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.ViewerView
 import com.lenatopoleva.bluetoothclient.ui.BackButtonListener
-import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity
-import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.DEVICE_ADDRESS
-import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.DEVICE_NAME
-import com.lenatopoleva.bluetoothclient.ui.activity.MainActivity.Companion.MY_PREFS_NAME
+import com.lenatopoleva.bluetoothclient.util.*
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
 import java.io.File
-import java.io.FileOutputStream
 import javax.inject.Inject
 
 
@@ -35,7 +35,6 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
 
     companion object {
         fun newInstance() = ViewerFragment()
-        const val REQUEST_ENABLE_BLUETOOTH = 1
     }
 
     private var _binding: ViewerFragmentBinding? = null
@@ -64,19 +63,51 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     ): View {
         _binding = ViewerFragmentBinding.inflate(inflater, container, false)
         val view = binding.root
+        binding.topAppBar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.item_connection -> {
+                    presenter.connectionMenuItemClicked()
+                    true
+                }
+                R.id.item_choose_config_file ->{
+                    presenter.chooseFileButtonClicked()
+                    true
+                }
+                else -> false
+            }
+        }
         return view
     }
 
     override fun onStart() {
+        println("*******VIEW FRAGMENT OnStart*******")
         super.onStart()
         val sharedPreferences = activity?.getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
+
+        if(presenter.mainPackagePath == null || presenter.mainPackagePath == ""){
+            presenter.mainPackagePath = sharedPreferences?.getString(MAIN_PACKAGE, null)?: ""
+            presenter.picturesObjectsPath = sharedPreferences?.getString(OBJECTS_PACKAGE, null)?: ""
+            presenter.picturesActionsPath = sharedPreferences?.getString(ACTIONS_PACKAGE, null)?: ""
+            presenter.picturesOtherPath = sharedPreferences?.getString(OTHER_PACKAGE, null)?: ""
+            presenter.soundsPath = sharedPreferences?.getString(SOUNDS_PACKAGE, null)?: ""
+            presenter.toneSoundFileName = sharedPreferences?.getString(TONE_SOUND_FILE_NAME, null)?: ""
+
+            println("onStart, mainPackagePath: $presenter.mainPackagePath")
+        }
+
         val deviceAddress = sharedPreferences?.getString(DEVICE_ADDRESS, null)
         val deviceName = sharedPreferences?.getString(DEVICE_NAME, null)
-        presenter.onStart( Device(deviceName?: "", deviceAddress?: "") )
+
+        presenter.onStart (Device(deviceName ?: "", deviceAddress ?: ""))
     }
 
     override fun showMessage(message: String) {
         Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        println("*******VIEW FRAGMENT onResume*******")
     }
 
     override fun updateTextView(message: String) {
@@ -85,29 +116,48 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     }
 
     override fun hideAppBar() {
-        (activity as MainActivity).topAppBar.visibility = View.GONE
+        binding.topAppBar.visibility = GONE
     }
 
     override fun hideActionBar() {
         activity?.window?.setFlags(
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-        activity?.actionBar?.hide();
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+        activity?.actionBar?.hide()
     }
 
     override fun showAppBar() {
-        (activity as MainActivity).topAppBar.visibility = View.VISIBLE
+       binding.topAppBar.visibility = VISIBLE
     }
 
     override fun showActionBar() {
-        activity?.window?.clearFlags( WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
-        activity?.actionBar?.show();
+        activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+        activity?.actionBar?.show()
     }
 
-    override fun showImage(image: String) {
-        val decodedByte = Base64.decode(image, Base64.DEFAULT)
-        val bitmap = BitmapFactory.decodeByteArray(decodedByte, 0, decodedByte.size)
-        binding.ivViewer.setImageBitmap(bitmap)
+    override fun showImage(imageName: String, subtype: String, isToneEnabled: Boolean) {
+        val imagePath: String
+        when(subtype){
+            "object" -> {
+                imagePath = presenter.picturesObjectsPath + File.separator + imageName
+                val imageFile = File(imagePath)
+                if(isToneEnabled && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
+                binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
+            }
+            "action" -> {
+                imagePath = presenter.picturesActionsPath + File.separator + imageName
+                val imageFile = File(imagePath)
+                if(isToneEnabled && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
+                binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
+            }
+            "other" -> {
+                imagePath = presenter.picturesOtherPath + File.separator + imageName
+                val imageFile = File(imagePath)
+                binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
+            }
+        }
+
     }
 
     override fun hideTextView() {
@@ -126,37 +176,88 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         binding.tvConnectionStatus.visibility = VISIBLE
     }
 
-    override fun startAudio(audioData: String?, audioCount: Int) {
-        if(audioData != null){
-            val decodedByte = Base64.decode(audioData, Base64.DEFAULT)
-            val tempAudioFile = File.createTempFile("${audioCount}audio", "mp3")
-            val fileOutputStream = FileOutputStream(tempAudioFile)
-            fileOutputStream.write(decodedByte)
-            fileOutputStream.close()
+    override fun startAudio(audioName: String) {
+        val audioPath = presenter.soundsPath + File.separator + audioName
+        val audioFile = File(audioPath)
 
-            val tempFilePath = tempAudioFile.path
-            println("tempAudioFile path: ${tempAudioFile.path}")
+        mediaPlayer.reset()
+        mediaPlayer.setDataSource(requireContext(), Uri.fromFile(audioFile))
+        mediaPlayer.setOnCompletionListener {
+            // do smth
+        }
+        mediaPlayer.prepare()
+        mediaPlayer.start()
+    }
 
-            presenter.audioPlaying()
-            mediaPlayer.reset()
-            mediaPlayer.setDataSource(requireContext(), Uri.fromFile(tempAudioFile))
-            mediaPlayer.setOnCompletionListener {
-                presenter.audioCompleted()
-                deleteTempAudioFile(tempFilePath)
+    override fun openChooseFileAlertDialog() {
+        val builder = AlertDialog.Builder(requireContext())
+        builder.setTitle("File path is not set")
+            .setMessage("Please, choose configuration file")
+            .setIcon(R.drawable.ic_baseline_folder_open_24)
+            .setCancelable(false)
+            .setPositiveButton("OK") { _: DialogInterface, _: Int ->
+                presenter.chooseFileButtonClicked()
             }
-            mediaPlayer.prepare()
-            mediaPlayer.start()
+        builder.create().show()
+    }
+
+    override fun openFileChooser() {
+        val intent = Intent()
+            .setType("*/*")
+            .setAction(Intent.ACTION_GET_CONTENT)
+        startActivityForResult(Intent.createChooser(intent, "open file"), REQUEST_OPEN_FILE_CHOOSER)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        println("*******VIEW FRAGMENT onActivityResult*******")
+        when(requestCode) {
+            REQUEST_OPEN_FILE_CHOOSER -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    val fileUri = data?.data
+                    println("fileUri = $fileUri")
+
+                    fileUri?.let {
+                        val path: String? = FilePathGetter().getPath(requireContext(), fileUri)
+                        savePathToSharedPreferences(path)
+                        println("file path: $path")
+                    }
+                }
+            }
         }
     }
 
-    private fun deleteTempAudioFile(path: String) {
-        println("Try to delete tempFile; path: $path")
-        val file = File(path)
-        if(file.exists()){
-            file.delete()
-            println("File deleted; path: $path")
+    private fun savePathToSharedPreferences(path: String?) {
+        path?.let {
+            val configFile = File(path)
+            presenter.mainPackagePath =
+                path.subSequence(0, path.length - configFile.name.length - 1).toString()
+            val packageNameArray = configFile.readLines()
+            println("packageNameArray = $packageNameArray")
+            for (packageName in packageNameArray) {
+                when (packageName.split("-").first()) {
+                    ACTIONS -> presenter.picturesActionsPath =
+                        presenter.mainPackagePath + File.separator + packageName.split("-").last()
+                    OBJECTS -> presenter.picturesObjectsPath =
+                        presenter.mainPackagePath + File.separator + packageName.split("-").last()
+                    OTHER -> presenter.picturesOtherPath = presenter.mainPackagePath + File.separator + packageName.split("-").last()
+                    SOUNDS -> presenter.soundsPath = presenter.mainPackagePath + File.separator + packageName.split("-").last()
+                    TONE -> presenter.toneSoundFileName = packageName.split("-").last()
+                    else -> Toast.makeText(requireContext(), "Wrong configuration file", Toast.LENGTH_LONG).show()
+                }
+            }
+            val sharedPreferences =
+                activity?.getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
+            val editor: SharedPreferences.Editor? = sharedPreferences?.edit()
+            if (editor != null) {
+                editor.putString(MAIN_PACKAGE, presenter.mainPackagePath)
+                editor.putString(ACTIONS_PACKAGE, presenter.picturesActionsPath)
+                editor.putString(OBJECTS_PACKAGE, presenter.picturesObjectsPath)
+                editor.putString(OTHER_PACKAGE, presenter.picturesOtherPath)
+                editor.putString(SOUNDS_PACKAGE, presenter.soundsPath)
+                editor.putString(TONE_SOUND_FILE_NAME, presenter.toneSoundFileName)
+                editor.apply()
+            }
         }
-        else println("Not file to delete; path: $path")
     }
 
     override fun backPressed() = presenter.backClick()

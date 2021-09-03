@@ -4,5 +4,10 @@
     <item android:id="@+id/item_connection"
         android:icon="@drawable/ic_baseline_bluetooth_24"
         android:title="@string/connect"
-        app:showAsAction="always"/>
+        app:showAsAction="ifRoom"/>
+
+    <item android:id="@+id/item_choose_config_file"
+        android:icon="@drawable/ic_baseline_folder_open_24"
+        android:title="@string/choose_folder"
+        app:showAsAction="ifRoom"/>
 </menu>

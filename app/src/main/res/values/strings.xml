@@ -7,4 +7,6 @@
     <string name="none_paired">No devices paired</string>
     <string name="bt_not_enabled_leaving">Bluetooth was not enabled. Leaving.</string>
     <string name="searching">Searching...</string>
+    <string name="permissions_not_granted">Permissions not granted</string>
+    <string name="choose_folder">Choose folder</string>
 </resources>

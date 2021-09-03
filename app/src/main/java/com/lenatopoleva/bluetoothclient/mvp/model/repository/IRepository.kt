@@ -5,4 +5,7 @@ import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 interface IRepository {
     fun saveDevice(device: Device)
     fun getDevice(): Device?
+    fun enableTone()
+    fun disableTone()
+    fun isToneEnabled(): Boolean
 }

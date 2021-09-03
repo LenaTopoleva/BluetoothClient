@@ -7,17 +7,15 @@ import com.lenatopoleva.bluetoothclient.mvp.model.entity.ConnectingStatus
 import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.model.repository.IRepository
 import com.lenatopoleva.bluetoothclient.mvp.view.ViewerView
-import com.lenatopoleva.bluetoothclient.util.AUDIO_PLAYING
-import com.lenatopoleva.bluetoothclient.util.AUDIO_READY
+import com.lenatopoleva.bluetoothclient.navigation.Screens
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
-import io.reactivex.rxjava3.subjects.BehaviorSubject
 import moxy.MvpPresenter
 import ru.terrakok.cicerone.Router
 import javax.inject.Inject
 
-class ViewerPresenter (): MvpPresenter<ViewerView>() {
+class ViewerPresenter: MvpPresenter<ViewerView>() {
 
     @Inject
     lateinit var router: Router
@@ -29,21 +27,30 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
     lateinit var bluetoothService: IBluetoothService
 
     private var disposables = CompositeDisposable()
-    private var newAudioFile: BehaviorSubject<String> = BehaviorSubject.create()
-    private var audioStatus: BehaviorSubject<Int> = BehaviorSubject.create()
-    private var audioCount: Int = 0
 
-    fun onStart(deviceFromSharedPrefs: Device) {
-        val device = repository.getDevice()
-        val deviceStatus = device?.status
-        if (device != null) {
-            if (deviceStatus == ConnectingStatus.CONNECTED) {
-                viewState.updateTextView("Connected with ${device.name}")
-                startDataTransmitting()
+    var mainPackagePath: String? = null
+    var picturesObjectsPath: String? = null
+    var picturesActionsPath: String? = null
+    var picturesOtherPath: String? = null
+    var soundsPath: String? = null
+    var toneSoundFileName: String? = null
+
+    fun onStart( deviceFromSharedPrefs: Device) {
+        if (mainPackagePath == null || mainPackagePath == ""){
+            viewState.openChooseFileAlertDialog()
+        }
+        else {
+            val device = repository.getDevice()
+            val deviceStatus = device?.status
+            if (device != null) {
+                if (deviceStatus == ConnectingStatus.CONNECTED) {
+                    viewState.updateTextView("Connected with ${device.name}")
+                    startDataTransmitting()
+                }
+                if (deviceStatus == ConnectingStatus.NOT_CONNECTED) tryToConnect(device)
+            } else if (deviceFromSharedPrefs.address != "") {
+                tryToConnect(deviceFromSharedPrefs)
             }
-            if (deviceStatus == ConnectingStatus.NOT_CONNECTED) tryToConnect(device)
-        } else if (deviceFromSharedPrefs.address != "") {
-            tryToConnect(deviceFromSharedPrefs)
         }
     }
 
@@ -65,15 +72,6 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
     }
 
     private fun startDataTransmitting(){
-        disposables.add(newAudioFile
-            .subscribeOn(Schedulers.io())
-            .observeOn(uiScheduler)
-            .subscribe {
-                        audioCount++
-                        viewState.startAudio(newAudioFile.value, audioCount)
-                        println("START AUDIO")
-            }
-        )
         println("***Start Data Transmitting***")
         disposables.add(bluetoothService.startDataTransmitting()
             .subscribeOn(Schedulers.io())
@@ -83,19 +81,24 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
                     val bluetoothResponse = Gson()
                         .fromJson(response, BluetoothResponse::class.java)
                     println("RESPONSE TYPE = ${bluetoothResponse.type}")
-                    if (bluetoothResponse.type == "image") {
+                    if (bluetoothResponse.type == "show_image") {
                         viewState.hideTextView()
                         viewState.hideAppBar()
                         viewState.hideActionBar()
                         viewState.showImageView()
-                        viewState.showImage(bluetoothResponse.data)
+                        viewState.showImage(bluetoothResponse.fileName, bluetoothResponse.subtype, repository.isToneEnabled())
                     }
-                    if (bluetoothResponse.type == "audio") {
+                    if (bluetoothResponse.type == "play_audio") {
                         println("GOT AUDIO")
-                        newAudioFile.onNext(bluetoothResponse.data)
-
+                        viewState.startAudio(bluetoothResponse.fileName )
                     }
-                    if (bluetoothResponse.type == "stop") {
+                    if (bluetoothResponse.type == "tone_enable") {
+                        repository.enableTone()
+                    }
+                    if (bluetoothResponse.type == "tone_disable") {
+                        repository.disableTone()
+                    }
+                    if (bluetoothResponse.type == "stop_session") {
                         viewState.showActionBar()
                         viewState.showAppBar()
                         viewState.hideImageView()
@@ -105,10 +108,10 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
                 },
                 {
                     val errorMessage = it.message
-                    errorMessage?.let {
+                    errorMessage?.let { message ->
                         viewState.hideImageView()
                         viewState.showTextView()
-                        viewState.updateTextView("Data transmitting exception: $it")
+                        viewState.updateTextView("Data transmitting exception: $message")
                     }
                     println("Data transmitting exception: ${it.message}")
                     viewState.showAppBar()
@@ -119,14 +122,6 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
                 }))
     }
 
-    fun audioCompleted() {
-        audioStatus.onNext(AUDIO_READY)
-    }
-
-    fun audioPlaying() {
-        audioStatus.onNext(AUDIO_PLAYING)
-    }
-
     fun backClick(): Boolean {
         router.exit()
         return true
@@ -135,6 +130,14 @@ class ViewerPresenter (): MvpPresenter<ViewerView>() {
     override fun onDestroy() {
         super.onDestroy()
         disposables.dispose()
+    }
+
+    fun connectionMenuItemClicked() {
+        router.navigateTo(Screens.ConnectionScreen())
+    }
+
+    fun chooseFileButtonClicked() {
+        viewState.openFileChooser()
     }
 
 }
