@@ -10,7 +10,7 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.io.IOException
-import java.lang.StringBuilder
+import java.io.ObjectInputStream
 import java.util.*
 import javax.inject.Inject
 
@@ -62,28 +62,14 @@ class BluetoothServiceImpl(): IBluetoothService {
 
     override fun startDataTransmitting(): Observable<String> {
         val inputStream = socket?.inputStream
+        val objectInputStream = ObjectInputStream(inputStream)
         val outputStream = socket?.outputStream
 
         return Observable.create<String> { emitter ->
-            var buffer = ByteArray(1000)
-            val stringBuilder = StringBuilder()
             while (true) {
-                val availableBytesLength = inputStream?.read(buffer)
-                if (availableBytesLength != null) {
-                    if (availableBytesLength > 0) {
-                        val buf = buffer.take(availableBytesLength).toByteArray().decodeToString()
-                        println("BUF = $buf")
-                        stringBuilder.append(buf)
-                        buffer = ByteArray(100000)
-                        if (buf.endsWith("}")) {
-                            println("ON NEXT")
-                            emitter.onNext(stringBuilder.toString())
-                            stringBuilder.clear()
-                        }
-                    else if (availableBytesLength == -1) emitter.onComplete()
-
-                    }
-                }
+                val ob = objectInputStream.readObject()
+                println("Ob: $ob")
+                emitter.onNext(ob.toString())
             }
         }
     }
