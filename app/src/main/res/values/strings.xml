@@ -16,8 +16,8 @@
     <string name="ok">OK</string>
     <string name="connecting">Connecting...</string>
     <string name="device_connected">Device connected</string>
-    <string name="unable_to_connect_device">Unable to connect device: </string>
+    <string name="unable_to_connect_device">Unable to connect device:\u0020</string>
     <string name="end_of_session">END OF SESSION</string>
-    <string name="data_transmitting_exception">Data transmitting exception: </string>
-    <string name="connected_with">Connected with </string>
+    <string name="data_transmitting_exception">Data transmitting exception:\u0020</string>
+    <string name="connected_with">Connected with\u0020</string>
 </resources>
