@@ -13,7 +13,7 @@ import moxy.MvpPresenter
 import ru.terrakok.cicerone.Router
 import javax.inject.Inject
 
-class ConnectionPresenter(): MvpPresenter<ConnectionView>() {
+class ConnectionPresenter: MvpPresenter<ConnectionView>() {
 
     @Inject
     lateinit var router: Router
@@ -65,12 +65,12 @@ class ConnectionPresenter(): MvpPresenter<ConnectionView>() {
         searchNewDevices()
 
         pairedDevicesListPresenter.itemClickListener = { view ->
-            view.showConnectingStatus("Connecting...")
+            view.showConnectingStatus()
             bluetoothServiceImpl.cancelSearch()
             tryToConnect(pairedDevicesListPresenter.pairedDevices[view.pos], view)
         }
         newDevicesListPresenter.itemClickListener = { view ->
-            view.showConnectingStatus("Connecting...")
+            view.showConnectingStatus()
             bluetoothServiceImpl.cancelSearch()
             tryToConnect(pairedDevicesListPresenter.pairedDevices[view.pos], view)
         }
@@ -84,13 +84,13 @@ class ConnectionPresenter(): MvpPresenter<ConnectionView>() {
                         repository.saveDevice(device)
                         itemView.hideConnectionStatus()
                         println("Device connected")
-                        viewState.showMessage("Device connected")
+                        viewState.showDeviceConnectedMessage()
                         viewState.saveDeviceToSharedPreferences(device)
                         router.exit()
                     },
                     {
                         itemView.hideConnectionStatus()
-                        viewState.showMessage("Unable to connect device: ${it.message}")
+                        viewState.showUnableToConnectDeviceMessage(it.message)
                         println("Unable to connect device: ${it.message}")
                         bluetoothServiceImpl.closeSocket()
                     }

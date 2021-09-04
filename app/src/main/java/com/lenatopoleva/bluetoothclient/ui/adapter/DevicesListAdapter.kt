@@ -5,6 +5,7 @@ import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.lenatopoleva.bluetoothclient.R
 import com.lenatopoleva.bluetoothclient.databinding.ItemDeviceBinding
 import com.lenatopoleva.bluetoothclient.mvp.presenter.list.IDevicesListPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.list.DeviceItemView
@@ -49,9 +50,9 @@ class DevicesListAdapter(val presenter: IDevicesListPresenter): RecyclerView.Ada
             binding.tvDeviceAddress.text = address
         }
 
-        override fun showConnectingStatus(connection: String) {
+        override fun showConnectingStatus() {
             binding.tvConnectingStatus.visibility = VISIBLE
-            binding.tvConnectingStatus.text = connection
+            binding.tvConnectingStatus.text = binding.root.resources.getString(R.string.connecting)
         }
 
         override fun hideConnectionStatus() {

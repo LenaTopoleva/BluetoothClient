@@ -48,7 +48,7 @@ class MainActivity : MvpAppCompatActivity(), MainView, ActivityCompat.OnRequestP
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        println(">>>>>>>MAIN ACTIVITY onCreate<<<<<<<")
+        println(">>>MAIN ACTIVITY onCreate<<<")
         if (bluetoothAdapter != null && !(bluetoothAdapter!!.isEnabled)) {
             createBluetoothRequestIntent()
         }
@@ -65,13 +65,13 @@ class MainActivity : MvpAppCompatActivity(), MainView, ActivityCompat.OnRequestP
 
     override fun onStart() {
         super.onStart()
-        println(">>>>>>>MAIN ACTIVITY onStart<<<<<<<")
+        println(">>>MAIN ACTIVITY onStart<<<")
 
     }
 
     override fun onResume() {
         super.onResume()
-        println(">>>>>>>MAIN ACTIVITY onResume<<<<<<<")
+        println(">>>MAIN ACTIVITY onResume<<<")
     }
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -98,7 +98,7 @@ class MainActivity : MvpAppCompatActivity(), MainView, ActivityCompat.OnRequestP
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        println(">>>>>>>MAIN ACTIVITY onActivityResult<<<<<<<")
+        println(">>>MAIN ACTIVITY onActivityResult<<<")
         super.onActivityResult(requestCode, resultCode, data)
         when(requestCode) {
             REQUEST_ENABLE_BLUETOOTH -> {

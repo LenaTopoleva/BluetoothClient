@@ -28,6 +28,7 @@ import com.lenatopoleva.bluetoothclient.util.*
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
 import java.io.File
+import java.io.FileNotFoundException
 import javax.inject.Inject
 
 
@@ -80,7 +81,7 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     }
 
     override fun onStart() {
-        println("*******VIEW FRAGMENT OnStart*******")
+        println("***VIEW FRAGMENT OnStart***")
         super.onStart()
         val sharedPreferences = activity?.getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -101,18 +102,9 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         presenter.onStart (Device(deviceName ?: "", deviceAddress ?: ""))
     }
 
-    override fun showMessage(message: String) {
-        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
-    }
-
     override fun onResume() {
         super.onResume()
-        println("*******VIEW FRAGMENT onResume*******")
-    }
-
-    override fun updateTextView(message: String) {
-        binding.tvConnectionStatus.text = ""
-        binding.tvConnectionStatus.text = message
+        println("***VIEW FRAGMENT onResume***")
     }
 
     override fun hideAppBar() {
@@ -157,7 +149,6 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
                 binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
             }
         }
-
     }
 
     override fun hideTextView() {
@@ -191,11 +182,11 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
 
     override fun openChooseFileAlertDialog() {
         val builder = AlertDialog.Builder(requireContext())
-        builder.setTitle("File path is not set")
-            .setMessage("Please, choose configuration file")
+        builder.setTitle(R.string.file_path_is_not_set)
+            .setMessage(R.string.choose_config_file)
             .setIcon(R.drawable.ic_baseline_folder_open_24)
             .setCancelable(false)
-            .setPositiveButton("OK") { _: DialogInterface, _: Int ->
+            .setPositiveButton(R.string.ok) { _: DialogInterface, _: Int ->
                 presenter.chooseFileButtonClicked()
             }
         builder.create().show()
@@ -203,13 +194,36 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
 
     override fun openFileChooser() {
         val intent = Intent()
-            .setType("*/*")
+            .setType("text/plain")
             .setAction(Intent.ACTION_GET_CONTENT)
-        startActivityForResult(Intent.createChooser(intent, "open file"), REQUEST_OPEN_FILE_CHOOSER)
+        startActivityForResult(Intent.createChooser(intent, resources.getString(R.string.file_picker)), REQUEST_OPEN_FILE_CHOOSER)
+    }
+
+    override fun showDataTransmittingExceptionMessage(exceptionMessage: String) {
+        val newText = resources.getString(R.string.data_transmitting_exception) + exceptionMessage
+        binding.tvConnectionStatus.text = newText
+    }
+
+    override fun showEndOfSessionMessage() {
+        binding.tvConnectionStatus.text = resources.getString(R.string.end_of_session)
+    }
+
+    override fun showUnableToConnectDeviceMessage(deviceNameAndError: String) {
+        val newText = resources.getString(R.string.unable_to_connect_device) + deviceNameAndError
+        binding.tvConnectionStatus.text = newText
+    }
+
+    override fun showConnectedWithMessage(deviceName: String) {
+        val newText = resources.getString(R.string.connected_with) + deviceName
+        binding.tvConnectionStatus.text = newText
+    }
+
+    override fun showDeviceConnectedToast() {
+        Toast.makeText(requireContext(), resources.getString(R.string.device_connected), Toast.LENGTH_LONG).show()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        println("*******VIEW FRAGMENT onActivityResult*******")
+        println("***VIEW FRAGMENT onActivityResult***")
         when(requestCode) {
             REQUEST_OPEN_FILE_CHOOSER -> {
                 if (resultCode == Activity.RESULT_OK) {
@@ -236,13 +250,23 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
             for (packageName in packageNameArray) {
                 when (packageName.split("-").first()) {
                     ACTIONS -> presenter.picturesActionsPath =
-                        presenter.mainPackagePath + File.separator + packageName.split("-").last()
+                        presenter.mainPackagePath + File.separator + packageName.split("-")
+                            .last()
                     OBJECTS -> presenter.picturesObjectsPath =
-                        presenter.mainPackagePath + File.separator + packageName.split("-").last()
-                    OTHER -> presenter.picturesOtherPath = presenter.mainPackagePath + File.separator + packageName.split("-").last()
-                    SOUNDS -> presenter.soundsPath = presenter.mainPackagePath + File.separator + packageName.split("-").last()
+                        presenter.mainPackagePath + File.separator + packageName.split("-")
+                            .last()
+                    OTHER -> presenter.picturesOtherPath =
+                        presenter.mainPackagePath + File.separator + packageName.split("-")
+                            .last()
+                    SOUNDS -> presenter.soundsPath =
+                        presenter.mainPackagePath + File.separator + packageName.split("-")
+                            .last()
                     TONE -> presenter.toneSoundFileName = packageName.split("-").last()
-                    else -> Toast.makeText(requireContext(), "Wrong configuration file", Toast.LENGTH_LONG).show()
+                    else -> Toast.makeText(
+                        requireContext(),
+                        resources.getString(R.string.wrong_config_file),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
             val sharedPreferences =

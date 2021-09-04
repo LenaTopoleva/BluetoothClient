@@ -44,7 +44,7 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
             val deviceStatus = device?.status
             if (device != null) {
                 if (deviceStatus == ConnectingStatus.CONNECTED) {
-                    viewState.updateTextView("Connected with ${device.name}")
+                    viewState.showConnectedWithMessage(device.name)
                     startDataTransmitting()
                 }
                 if (deviceStatus == ConnectingStatus.NOT_CONNECTED) tryToConnect(device)
@@ -60,11 +60,11 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
             .subscribe(
                 {   device.status = ConnectingStatus.CONNECTED
                     repository.saveDevice(device)
-                    viewState.updateTextView("Connected with ${device.name}")
-                    viewState.showMessage("Device connected")
+                    viewState.showConnectedWithMessage(device.name)
+                    viewState.showDeviceConnectedToast()
                     startDataTransmitting() },
                 {
-                    viewState.updateTextView("Unable to connect device ${device.name}: ${it.message}")
+                    viewState.showUnableToConnectDeviceMessage("${device.name}: ${it.message}")
                     println("Unable to connect device: ${it.message}")
                     bluetoothService.closeSocket()
                 }
@@ -81,29 +81,25 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                     val bluetoothResponse = Gson()
                         .fromJson(response, BluetoothResponse::class.java)
                     println("RESPONSE TYPE = ${bluetoothResponse.type}")
-                    if (bluetoothResponse.type == "show_image") {
-                        viewState.hideTextView()
-                        viewState.hideAppBar()
-                        viewState.hideActionBar()
-                        viewState.showImageView()
-                        viewState.showImage(bluetoothResponse.fileName, bluetoothResponse.subtype, repository.isToneEnabled())
-                    }
-                    if (bluetoothResponse.type == "play_audio") {
-                        println("GOT AUDIO")
-                        viewState.startAudio(bluetoothResponse.fileName )
-                    }
-                    if (bluetoothResponse.type == "tone_enable") {
-                        repository.enableTone()
-                    }
-                    if (bluetoothResponse.type == "tone_disable") {
-                        repository.disableTone()
-                    }
-                    if (bluetoothResponse.type == "stop_session") {
-                        viewState.showActionBar()
-                        viewState.showAppBar()
-                        viewState.hideImageView()
-                        viewState.showTextView()
-                        viewState.updateTextView("END OF SESSION")
+                    when(bluetoothResponse.type) {
+                        "show_image" -> {
+                            viewState.hideTextView()
+                            viewState.hideAppBar()
+                            viewState.hideActionBar()
+                            viewState.showImageView()
+                            viewState.showImage(bluetoothResponse.fileName,
+                                bluetoothResponse.subtype, repository.isToneEnabled())
+                        }
+                        "play_audio" -> viewState.startAudio(bluetoothResponse.fileName )
+                        "tone_enable" -> repository.enableTone()
+                        "tone_disable" -> repository.disableTone()
+                        "stop_session" -> {
+                            viewState.showActionBar()
+                            viewState.showAppBar()
+                            viewState.hideImageView()
+                            viewState.showTextView()
+                            viewState.showEndOfSessionMessage()
+                        }
                     }
                 },
                 {
@@ -111,7 +107,7 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                     errorMessage?.let { message ->
                         viewState.hideImageView()
                         viewState.showTextView()
-                        viewState.updateTextView("Data transmitting exception: $message")
+                        viewState.showDataTransmittingExceptionMessage(message)
                     }
                     println("Data transmitting exception: ${it.message}")
                     viewState.showAppBar()

@@ -61,11 +61,11 @@ class BluetoothServiceImpl(): IBluetoothService {
     }
 
     override fun startDataTransmitting(): Observable<String> {
-        val inputStream = socket?.inputStream
-        val objectInputStream = ObjectInputStream(inputStream)
-        val outputStream = socket?.outputStream
-
         return Observable.create<String> { emitter ->
+            val inputStream = socket?.inputStream
+            val objectInputStream = ObjectInputStream(inputStream)
+            val outputStream = socket?.outputStream
+
             while (true) {
                 val ob = objectInputStream.readObject()
                 println("Ob: $ob")

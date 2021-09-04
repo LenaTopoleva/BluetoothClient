@@ -10,8 +10,9 @@ interface ConnectionView: MvpView {
     fun updatePairedDevicesList()
     fun updateNewDevicesList()
     fun saveDeviceAddress(address: String)
-    fun showMessage(s: String)
     fun saveDeviceToSharedPreferences(device: Device)
     fun showSearchingTextView()
     fun hideSearchingTextView()
+    fun showDeviceConnectedMessage()
+    fun showUnableToConnectDeviceMessage(errorMessage: String?)
 }

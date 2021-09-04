@@ -12,6 +12,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lenatopoleva.bluetoothclient.App
+import com.lenatopoleva.bluetoothclient.R
 import com.lenatopoleva.bluetoothclient.databinding.ConnectionFragmentBinding
 import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.presenter.ConnectionPresenter
@@ -102,8 +103,12 @@ class ConnectionFragment: MvpAppCompatFragment(), ConnectionView, BackButtonList
         activity
     }
 
-    override fun showMessage(message: String) {
-        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+    override fun showDeviceConnectedMessage() {
+        Toast.makeText(requireContext(), resources.getString(R.string.device_connected), Toast.LENGTH_LONG).show()
+    }
+
+    override fun showUnableToConnectDeviceMessage(errorMessage: String?) {
+        Toast.makeText(requireContext(), resources.getString(R.string.unable_to_connect_device) + errorMessage, Toast.LENGTH_LONG).show()
     }
 
     override fun saveDeviceToSharedPreferences(device: Device) {

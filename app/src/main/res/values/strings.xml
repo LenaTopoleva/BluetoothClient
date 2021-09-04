@@ -9,4 +9,15 @@
     <string name="searching">Searching...</string>
     <string name="permissions_not_granted">Permissions not granted</string>
     <string name="choose_folder">Choose folder</string>
+    <string name="wrong_config_file">Wrong configuration file</string>
+    <string name="file_path_is_not_set">File path is not set</string>
+    <string name="choose_config_file">Please, choose configuration file</string>
+    <string name="file_picker">File picker</string>
+    <string name="ok">OK</string>
+    <string name="connecting">Connecting...</string>
+    <string name="device_connected">Device connected</string>
+    <string name="unable_to_connect_device">Unable to connect device: </string>
+    <string name="end_of_session">END OF SESSION</string>
+    <string name="data_transmitting_exception">Data transmitting exception: </string>
+    <string name="connected_with">Connected with </string>
 </resources>

@@ -7,9 +7,6 @@ import moxy.viewstate.strategy.alias.Skip
 @AddToEndSingle
 interface ViewerView: MvpView {
 
-    @Skip fun showMessage(message: String)
-
-    fun updateTextView(message: String)
     fun hideAppBar()
     fun hideActionBar()
     fun showAppBar()
@@ -23,4 +20,13 @@ interface ViewerView: MvpView {
     @Skip fun startAudio(audioName: String)
     @Skip fun openChooseFileAlertDialog()
     @Skip fun openFileChooser()
+
+    // Update TextView
+    fun showDataTransmittingExceptionMessage(exceptionMessage: String)
+    fun showEndOfSessionMessage()
+    fun showUnableToConnectDeviceMessage(deviceNameAndError: String)
+    fun showConnectedWithMessage(deviceName: String)
+
+    // Toast
+    @Skip fun showDeviceConnectedToast()
 }
