@@ -28,7 +28,6 @@ import com.lenatopoleva.bluetoothclient.util.*
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
 import java.io.File
-import java.io.FileNotFoundException
 import javax.inject.Inject
 
 
@@ -128,24 +127,25 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         activity?.actionBar?.show()
     }
 
-    override fun showImage(imageName: String, subtype: String, isToneEnabled: Boolean) {
+    override fun showImage(imageName: String, subtype: String, tone: Boolean) {
         val imagePath: String
         when(subtype){
             "object" -> {
                 imagePath = presenter.picturesObjectsPath + File.separator + imageName
                 val imageFile = File(imagePath)
-                if(isToneEnabled && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
+                if(tone && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
                 binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
             }
             "action" -> {
                 imagePath = presenter.picturesActionsPath + File.separator + imageName
                 val imageFile = File(imagePath)
-                if(isToneEnabled && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
+                if(tone && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
                 binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
             }
             "other" -> {
                 imagePath = presenter.picturesOtherPath + File.separator + imageName
                 val imageFile = File(imagePath)
+                if(tone && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
                 binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
             }
         }

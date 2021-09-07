@@ -11,7 +11,7 @@ interface ViewerView: MvpView {
     fun hideActionBar()
     fun showAppBar()
     fun showActionBar()
-    fun showImage(imageName: String, subtype: String, isToneEnabled: Boolean)
+    fun showImage(imageName: String, subtype: String, tone: Boolean)
     fun hideTextView()
     fun showImageView()
     fun hideImageView()

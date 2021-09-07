@@ -88,11 +88,9 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                             viewState.hideActionBar()
                             viewState.showImageView()
                             viewState.showImage(bluetoothResponse.fileName,
-                                bluetoothResponse.subtype, repository.isToneEnabled())
+                                bluetoothResponse.subtype, bluetoothResponse.tone)
                         }
                         "play_audio" -> viewState.startAudio(bluetoothResponse.fileName )
-                        "tone_enable" -> repository.enableTone()
-                        "tone_disable" -> repository.disableTone()
                         "stop_session" -> {
                             viewState.showActionBar()
                             viewState.showAppBar()
