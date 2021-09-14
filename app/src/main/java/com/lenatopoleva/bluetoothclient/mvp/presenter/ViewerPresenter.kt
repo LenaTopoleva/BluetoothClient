@@ -35,6 +35,7 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
     var soundsPath: String? = null
     var toneSoundFileName: String? = null
 
+    var currentDeviceFromSharedPrefs: Device? = null
     var dataIsTransmitting: Boolean = false
 
     fun onStart( deviceFromSharedPrefs: Device) {
@@ -55,6 +56,7 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                     tryToConnect(device)
                 }
             } else if (deviceFromSharedPrefs.address != "") {
+                currentDeviceFromSharedPrefs = deviceFromSharedPrefs
                 println("onStart, device = null, deviceFromSharedPrefs.address != \"\"")
                 tryToConnect(deviceFromSharedPrefs)
             }
@@ -92,20 +94,14 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                     println("RESPONSE TYPE = ${bluetoothResponse.type}")
                     when(bluetoothResponse.type) {
                         "show_image" -> {
-                            viewState.hideTextView()
-                            viewState.hideAppBar()
-                            viewState.hideActionBar()
-                            viewState.showImageView()
+                            openPictureViewMode()
                             viewState.showImage(bluetoothResponse.fileName,
                                 bluetoothResponse.subtype)
                             viewState.startToneAudioIfEnable(bluetoothResponse.tone)
                         }
                         "play_audio" -> viewState.startAudio(bluetoothResponse.fileName )
                         "stop_session" -> {
-                            viewState.showActionBar()
-                            viewState.showAppBar()
-                            viewState.hideImageView()
-                            viewState.showTextView()
+                            closePictureViewMode()
                             repository.getDevice()?.name?.let { viewState.showConnectedWithMessage(it) }
                         }
                     }
@@ -113,20 +109,33 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                 {
                     dataIsTransmitting = false
                     changeDeviceStatus(device, ConnectingStatus.NOT_CONNECTED)
-                    viewState.hideImageView()
-                    viewState.showTextView()
+                    closePictureViewMode()
                     viewState.showDeviceIsNotConnectedMessage()
                     val errorMessage = it.message
                     errorMessage?.let { message ->
                         viewState.showDataTransmittingExceptionToast(message)
                     }
                     println("Data transmitting exception: ${it.message}")
-                    viewState.showAppBar()
-                    viewState.showActionBar()
                 },
                 {
                     println("Data transmitting complete")
                 }))
+    }
+
+    private fun openPictureViewMode(){
+        viewState.hideTextView()
+        viewState.hideAppBar()
+        viewState.hideActionBar()
+        viewState.showImageView()
+        viewState.hideFab()
+    }
+
+    private fun closePictureViewMode(){
+        viewState.showTextView()
+        viewState.showAppBar()
+        viewState.showActionBar()
+        viewState.hideImageView()
+        viewState.showFab()
     }
 
     private fun changeDeviceStatus(device: Device, status: ConnectingStatus){
@@ -150,6 +159,17 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
 
     fun chooseFileButtonClicked() {
         viewState.openFileChooser()
+    }
+
+    fun fabReconnectClicked() {
+        val device = repository.getDevice()
+        if (device != null) {
+            if (device.status == ConnectingStatus.NOT_CONNECTED) tryToConnect(device)
+            else viewState.showDeviceConnectedToast()
+        }
+        else if (currentDeviceFromSharedPrefs != null && currentDeviceFromSharedPrefs!!.address != ""){
+            tryToConnect(currentDeviceFromSharedPrefs!!)
+        } else viewState.showChooseDeviceToast()
     }
 
 }

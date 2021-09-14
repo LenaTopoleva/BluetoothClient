@@ -20,4 +20,5 @@
     <string name="end_of_session">END OF SESSION</string>
     <string name="data_transmitting_exception">Data transmitting exception:\u0020</string>
     <string name="connected_with">Connected with\u0020</string>
+    <string name="choose_device">Please, choose device to connect</string>
 </resources>

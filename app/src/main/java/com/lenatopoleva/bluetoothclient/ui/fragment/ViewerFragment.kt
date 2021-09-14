@@ -76,6 +76,7 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
                 else -> false
             }
         }
+        binding.fabReconnect.setOnClickListener { presenter.fabReconnectClicked() }
         return view
     }
 
@@ -164,6 +165,14 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         binding.tvConnectionStatus.visibility = VISIBLE
     }
 
+    override fun hideFab() {
+        binding.fabReconnect.visibility = GONE
+    }
+
+    override fun showFab() {
+        binding.fabReconnect.visibility = VISIBLE
+    }
+
     override fun startAudio(audioName: String) {
         val audioPath = presenter.soundsPath + File.separator + audioName
         val audioFile = File(audioPath)
@@ -210,6 +219,10 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     override fun showUnableToConnectDeviceToast(deviceNameAndError: String) {
         Toast.makeText(requireContext(), resources.getString(R.string.unable_to_connect_device)
                 + deviceNameAndError, Toast.LENGTH_LONG).show()
+    }
+
+    override fun showChooseDeviceToast() {
+        Toast.makeText(requireContext(), resources.getString(R.string.choose_device), Toast.LENGTH_LONG).show()
     }
 
     override fun showConnectedWithMessage(deviceName: String) {

@@ -16,6 +16,8 @@ interface ViewerView: MvpView {
     fun showImageView()
     fun hideImageView()
     fun showTextView()
+    fun hideFab()
+    fun showFab()
 
     @Skip fun startAudio(audioName: String)
     @Skip fun startToneAudioIfEnable(tone: Boolean)
@@ -30,6 +32,7 @@ interface ViewerView: MvpView {
     @Skip fun showDeviceConnectedToast()
     @Skip fun showDataTransmittingExceptionToast(exceptionMessage: String)
     @Skip fun showUnableToConnectDeviceToast(deviceNameAndError: String)
+    @Skip fun showChooseDeviceToast()
 
 
 }
