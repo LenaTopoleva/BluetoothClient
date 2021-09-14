@@ -201,12 +201,15 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     }
 
     override fun showDataTransmittingExceptionToast(exceptionMessage: String) {
-        Toast.makeText(requireContext(), resources.getString(R.string.data_transmitting_exception) + exceptionMessage, Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(),
+                resources.getString(R.string.data_transmitting_exception) + exceptionMessage,
+                Toast.LENGTH_LONG).show()
 
     }
 
     override fun showUnableToConnectDeviceToast(deviceNameAndError: String) {
-        Toast.makeText(requireContext(), resources.getString(R.string.unable_to_connect_device) + deviceNameAndError, Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), resources.getString(R.string.unable_to_connect_device)
+                + deviceNameAndError, Toast.LENGTH_LONG).show()
     }
 
     override fun showConnectedWithMessage(deviceName: String) {

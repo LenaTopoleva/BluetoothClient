@@ -35,6 +35,8 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
     var soundsPath: String? = null
     var toneSoundFileName: String? = null
 
+    var dataIsTransmitting: Boolean = false
+
     fun onStart( deviceFromSharedPrefs: Device) {
         if (mainPackagePath == null || mainPackagePath == ""){
             viewState.openChooseFileAlertDialog()
@@ -43,12 +45,17 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
             val device = repository.getDevice()
             val deviceStatus = device?.status
             if (device != null) {
-                if (deviceStatus == ConnectingStatus.CONNECTED) {
+                if (deviceStatus == ConnectingStatus.CONNECTED && !dataIsTransmitting) {
+                    println("onStart, deviceStatus: ${device.status}, dataIsTransmitting: $dataIsTransmitting")
                     viewState.showConnectedWithMessage(device.name)
-                    startDataTransmitting()
+                    startDataTransmitting(device)
                 }
-                if (deviceStatus == ConnectingStatus.NOT_CONNECTED) tryToConnect(device)
+                if (deviceStatus == ConnectingStatus.NOT_CONNECTED) {
+                    println("onStart, deviceStatus: ${device.status}")
+                    tryToConnect(device)
+                }
             } else if (deviceFromSharedPrefs.address != "") {
+                println("onStart, device = null, deviceFromSharedPrefs.address != \"\"")
                 tryToConnect(deviceFromSharedPrefs)
             }
         }
@@ -58,10 +65,12 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
         disposables.add(bluetoothService.connectToDevice(device.address)
             .observeOn(uiScheduler)
             .subscribe(
-                {   changeDeviceStatus(ConnectingStatus.CONNECTED)
+                {
+                    changeDeviceStatus(device, ConnectingStatus.CONNECTED)
+                    println("Device connected, device status from repo: ${(repository.getDevice() as Device).status}")
                     viewState.showConnectedWithMessage(device.name)
                     viewState.showDeviceConnectedToast()
-                    startDataTransmitting() },
+                    startDataTransmitting(device) },
                 {
                     viewState.showUnableToConnectDeviceToast("${device.name}: ${it.message}")
                     println("Unable to connect device: ${it.message}")
@@ -70,7 +79,8 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
             ))
     }
 
-    private fun startDataTransmitting(){
+    private fun startDataTransmitting(device: Device){
+        dataIsTransmitting = true
         println("***Start Data Transmitting***")
         disposables.add(bluetoothService.startDataTransmitting()
             .subscribeOn(Schedulers.io())
@@ -101,7 +111,8 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                     }
                 },
                 {
-                    changeDeviceStatus(ConnectingStatus.NOT_CONNECTED)
+                    dataIsTransmitting = false
+                    changeDeviceStatus(device, ConnectingStatus.NOT_CONNECTED)
                     viewState.hideImageView()
                     viewState.showTextView()
                     viewState.showDeviceIsNotConnectedMessage()
@@ -118,14 +129,10 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                 }))
     }
 
-    private fun changeDeviceStatus(status: ConnectingStatus){
-        val currentDevice = repository.getDevice()
-        currentDevice?.let {
-            currentDevice.status = status
-           repository.saveDevice(currentDevice)
-        }
+    private fun changeDeviceStatus(device: Device, status: ConnectingStatus){
+        device.status = status
+        repository.saveDevice(device)
     }
-
 
     fun backClick(): Boolean {
         router.exit()

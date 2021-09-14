@@ -22,7 +22,7 @@ class BluetoothServiceImpl(): IBluetoothService {
 
     private var pairedDevices: MutableList<Device>? = null
     private var remoteDeviceToConnect: BluetoothDevice? = null
-    var socket: BluetoothSocket? = null
+    private var socket: BluetoothSocket? = null
 
     init {
         App.instance.appComponent.inject(this)
@@ -31,6 +31,18 @@ class BluetoothServiceImpl(): IBluetoothService {
     companion object{
         // Unique UUID for this application
         val MY_UUID: UUID = UUID.fromString("04c6093b-0000-1000-8000-00805f9b34fb")
+    }
+
+    private val dataTransmittingObservable: Observable<String> = Observable.create { emitter ->
+        val inputStream = socket?.inputStream
+        val objectInputStream = ObjectInputStream(inputStream)
+        val outputStream = socket?.outputStream
+
+        while (true) {
+            val obj = objectInputStream.readObject()
+            println("Ojb: $obj")
+            emitter.onNext(obj.toString())
+        }
     }
 
     override fun getPairedDevices(): MutableList<Device> {
@@ -60,19 +72,7 @@ class BluetoothServiceImpl(): IBluetoothService {
             .subscribeOn(Schedulers.io())
     }
 
-    override fun startDataTransmitting(): Observable<String> {
-        return Observable.create<String> { emitter ->
-            val inputStream = socket?.inputStream
-            val objectInputStream = ObjectInputStream(inputStream)
-            val outputStream = socket?.outputStream
-
-            while (true) {
-                val ob = objectInputStream.readObject()
-                println("Ob: $ob")
-                emitter.onNext(ob.toString())
-            }
-        }
-    }
+    override fun startDataTransmitting(): Observable<String> = dataTransmittingObservable
 
     override fun closeSocket(){
         socket?.close()
