@@ -103,10 +103,6 @@ class ConnectionFragment: MvpAppCompatFragment(), ConnectionView, BackButtonList
         activity
     }
 
-    override fun showDeviceConnectedMessage() {
-        Toast.makeText(requireContext(), resources.getString(R.string.device_connected), Toast.LENGTH_LONG).show()
-    }
-
     override fun showUnableToConnectDeviceMessage(errorMessage: String?) {
         Toast.makeText(requireContext(), resources.getString(R.string.unable_to_connect_device) + errorMessage, Toast.LENGTH_LONG).show()
     }

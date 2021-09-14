@@ -13,6 +13,5 @@ interface ConnectionView: MvpView {
     fun saveDeviceToSharedPreferences(device: Device)
     fun showSearchingTextView()
     fun hideSearchingTextView()
-    fun showDeviceConnectedMessage()
     fun showUnableToConnectDeviceMessage(errorMessage: String?)
 }

@@ -127,25 +127,22 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         activity?.actionBar?.show()
     }
 
-    override fun showImage(imageName: String, subtype: String, tone: Boolean) {
+    override fun showImage(imageName: String, subtype: String) {
         val imagePath: String
         when(subtype){
             "object" -> {
                 imagePath = presenter.picturesObjectsPath + File.separator + imageName
                 val imageFile = File(imagePath)
-                if(tone && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
                 binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
             }
             "action" -> {
                 imagePath = presenter.picturesActionsPath + File.separator + imageName
                 val imageFile = File(imagePath)
-                if(tone && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
                 binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
             }
             "other" -> {
                 imagePath = presenter.picturesOtherPath + File.separator + imageName
                 val imageFile = File(imagePath)
-                if(tone && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
                 binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
             }
         }
@@ -180,6 +177,10 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         mediaPlayer.start()
     }
 
+    override fun startToneAudioIfEnable(tone: Boolean) {
+        if(tone && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
+    }
+
     override fun openChooseFileAlertDialog() {
         val builder = AlertDialog.Builder(requireContext())
         builder.setTitle(R.string.file_path_is_not_set)
@@ -199,22 +200,22 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         startActivityForResult(Intent.createChooser(intent, resources.getString(R.string.file_picker)), REQUEST_OPEN_FILE_CHOOSER)
     }
 
-    override fun showDataTransmittingExceptionMessage(exceptionMessage: String) {
-        val newText = resources.getString(R.string.data_transmitting_exception) + exceptionMessage
-        binding.tvConnectionStatus.text = newText
+    override fun showDataTransmittingExceptionToast(exceptionMessage: String) {
+        Toast.makeText(requireContext(), resources.getString(R.string.data_transmitting_exception) + exceptionMessage, Toast.LENGTH_LONG).show()
+
     }
 
-    override fun showEndOfSessionMessage() {
-        binding.tvConnectionStatus.text = resources.getString(R.string.end_of_session)
-    }
-
-    override fun showUnableToConnectDeviceMessage(deviceNameAndError: String) {
-        val newText = resources.getString(R.string.unable_to_connect_device) + deviceNameAndError
-        binding.tvConnectionStatus.text = newText
+    override fun showUnableToConnectDeviceToast(deviceNameAndError: String) {
+        Toast.makeText(requireContext(), resources.getString(R.string.unable_to_connect_device) + deviceNameAndError, Toast.LENGTH_LONG).show()
     }
 
     override fun showConnectedWithMessage(deviceName: String) {
         val newText = resources.getString(R.string.connected_with) + deviceName
+        binding.tvConnectionStatus.text = newText
+    }
+
+    override fun showDeviceIsNotConnectedMessage() {
+        val newText = resources.getString(R.string.device_is_not_connected)
         binding.tvConnectionStatus.text = newText
     }
 

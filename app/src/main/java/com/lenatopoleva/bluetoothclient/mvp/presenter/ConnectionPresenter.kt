@@ -84,7 +84,6 @@ class ConnectionPresenter: MvpPresenter<ConnectionView>() {
                         repository.saveDevice(device)
                         itemView.hideConnectionStatus()
                         println("Device connected")
-                        viewState.showDeviceConnectedMessage()
                         viewState.saveDeviceToSharedPreferences(device)
                         router.exit()
                     },

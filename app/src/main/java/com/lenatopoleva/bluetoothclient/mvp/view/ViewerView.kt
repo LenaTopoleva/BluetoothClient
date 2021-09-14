@@ -11,22 +11,25 @@ interface ViewerView: MvpView {
     fun hideActionBar()
     fun showAppBar()
     fun showActionBar()
-    fun showImage(imageName: String, subtype: String, tone: Boolean)
+    fun showImage(imageName: String, subtype: String)
     fun hideTextView()
     fun showImageView()
     fun hideImageView()
     fun showTextView()
 
     @Skip fun startAudio(audioName: String)
+    @Skip fun startToneAudioIfEnable(tone: Boolean)
     @Skip fun openChooseFileAlertDialog()
     @Skip fun openFileChooser()
 
     // Update TextView
-    fun showDataTransmittingExceptionMessage(exceptionMessage: String)
-    fun showEndOfSessionMessage()
-    fun showUnableToConnectDeviceMessage(deviceNameAndError: String)
+    fun showDeviceIsNotConnectedMessage()
     fun showConnectedWithMessage(deviceName: String)
 
     // Toast
     @Skip fun showDeviceConnectedToast()
+    @Skip fun showDataTransmittingExceptionToast(exceptionMessage: String)
+    @Skip fun showUnableToConnectDeviceToast(deviceNameAndError: String)
+
+
 }

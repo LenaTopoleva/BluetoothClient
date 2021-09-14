@@ -58,13 +58,12 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
         disposables.add(bluetoothService.connectToDevice(device.address)
             .observeOn(uiScheduler)
             .subscribe(
-                {   device.status = ConnectingStatus.CONNECTED
-                    repository.saveDevice(device)
+                {   changeDeviceStatus(ConnectingStatus.CONNECTED)
                     viewState.showConnectedWithMessage(device.name)
                     viewState.showDeviceConnectedToast()
                     startDataTransmitting() },
                 {
-                    viewState.showUnableToConnectDeviceMessage("${device.name}: ${it.message}")
+                    viewState.showUnableToConnectDeviceToast("${device.name}: ${it.message}")
                     println("Unable to connect device: ${it.message}")
                     bluetoothService.closeSocket()
                 }
@@ -88,7 +87,8 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                             viewState.hideActionBar()
                             viewState.showImageView()
                             viewState.showImage(bluetoothResponse.fileName,
-                                bluetoothResponse.subtype, bluetoothResponse.tone)
+                                bluetoothResponse.subtype)
+                            viewState.startToneAudioIfEnable(bluetoothResponse.tone)
                         }
                         "play_audio" -> viewState.startAudio(bluetoothResponse.fileName )
                         "stop_session" -> {
@@ -96,16 +96,18 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                             viewState.showAppBar()
                             viewState.hideImageView()
                             viewState.showTextView()
-                            viewState.showEndOfSessionMessage()
+                            repository.getDevice()?.name?.let { viewState.showConnectedWithMessage(it) }
                         }
                     }
                 },
                 {
+                    changeDeviceStatus(ConnectingStatus.NOT_CONNECTED)
+                    viewState.hideImageView()
+                    viewState.showTextView()
+                    viewState.showDeviceIsNotConnectedMessage()
                     val errorMessage = it.message
                     errorMessage?.let { message ->
-                        viewState.hideImageView()
-                        viewState.showTextView()
-                        viewState.showDataTransmittingExceptionMessage(message)
+                        viewState.showDataTransmittingExceptionToast(message)
                     }
                     println("Data transmitting exception: ${it.message}")
                     viewState.showAppBar()
@@ -115,6 +117,15 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                     println("Data transmitting complete")
                 }))
     }
+
+    private fun changeDeviceStatus(status: ConnectingStatus){
+        val currentDevice = repository.getDevice()
+        currentDevice?.let {
+            currentDevice.status = status
+           repository.saveDevice(currentDevice)
+        }
+    }
+
 
     fun backClick(): Boolean {
         router.exit()
