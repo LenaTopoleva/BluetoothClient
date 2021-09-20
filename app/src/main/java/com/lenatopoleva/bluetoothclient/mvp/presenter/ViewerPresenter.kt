@@ -17,6 +17,7 @@ import javax.inject.Inject
 
 class ViewerPresenter: MvpPresenter<ViewerView>() {
 
+
     @Inject
     lateinit var router: Router
     @Inject
@@ -28,18 +29,19 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
 
     private var disposables = CompositeDisposable()
 
-    var mainPackagePath: String? = null
-    var picturesObjectsPath: String? = null
-    var picturesActionsPath: String? = null
-    var picturesOtherPath: String? = null
-    var soundsPath: String? = null
+    var rootPackageUri: String? = null
+    var picturesObjectsPackageName: String? = null
+    var picturesActionsPackageName: String? = null
+    var picturesOtherPackageName: String? = null
+    var soundsPackageName: String? = null
     var toneSoundFileName: String? = null
 
     var currentDeviceFromSharedPrefs: Device? = null
     var dataIsTransmitting: Boolean = false
 
     fun onStart( deviceFromSharedPrefs: Device) {
-        if (mainPackagePath == null || mainPackagePath == ""){
+//        if (mainPackagePath == null || mainPackagePath == ""){
+        if (rootPackageUri == null || rootPackageUri == ""){
             viewState.openChooseFileAlertDialog()
         }
         else {
@@ -116,6 +118,7 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                         viewState.showDataTransmittingExceptionToast(message)
                     }
                     println("Data transmitting exception: ${it.message}")
+                    bluetoothService.stopDataTransmitting()
                 },
                 {
                     println("Data transmitting complete")

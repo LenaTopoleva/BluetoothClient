@@ -11,4 +11,5 @@ interface IBluetoothService {
     fun connectToDevice(deviceAddress: String): Completable
     fun closeSocket()
     fun startDataTransmitting(): Observable<String>
+    fun stopDataTransmitting()
 }

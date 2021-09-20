@@ -19,6 +19,7 @@ interface ViewerView: MvpView {
     fun hideFab()
     fun showFab()
 
+//    @Skip fun startAudio(audioName: String)
     @Skip fun startAudio(audioName: String)
     @Skip fun startToneAudioIfEnable(tone: Boolean)
     @Skip fun openChooseFileAlertDialog()

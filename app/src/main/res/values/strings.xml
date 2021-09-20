@@ -10,9 +10,9 @@
     <string name="permissions_not_granted">Permissions not granted</string>
     <string name="choose_folder">Choose folder</string>
     <string name="wrong_config_file">Wrong configuration file</string>
-    <string name="file_path_is_not_set">File path is not set</string>
-    <string name="choose_config_file">Please, choose configuration file</string>
-    <string name="file_picker">File picker</string>
+    <string name="directory_is_not_set">Directory is not set</string>
+    <string name="choose_directory">Please, choose directory</string>
+    <string name="directory_chooser">Directory chooser</string>
     <string name="ok">OK</string>
     <string name="connecting">Connecting...</string>
     <string name="device_connected">Device connected</string>

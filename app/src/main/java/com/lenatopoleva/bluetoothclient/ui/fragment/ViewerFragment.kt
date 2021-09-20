@@ -7,9 +7,13 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
+import android.os.ParcelFileDescriptor
+import android.provider.DocumentsContract
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.GONE
@@ -17,6 +21,7 @@ import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.documentfile.provider.DocumentFile
 import com.lenatopoleva.bluetoothclient.App
 import com.lenatopoleva.bluetoothclient.R
 import com.lenatopoleva.bluetoothclient.databinding.ViewerFragmentBinding
@@ -27,7 +32,9 @@ import com.lenatopoleva.bluetoothclient.ui.BackButtonListener
 import com.lenatopoleva.bluetoothclient.util.*
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
-import java.io.File
+import java.io.BufferedReader
+import java.io.FileDescriptor
+import java.io.InputStreamReader
 import javax.inject.Inject
 
 
@@ -57,9 +64,9 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
     ): View {
         _binding = ViewerFragmentBinding.inflate(inflater, container, false)
         val view = binding.root
@@ -69,7 +76,7 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
                     presenter.connectionMenuItemClicked()
                     true
                 }
-                R.id.item_choose_config_file ->{
+                R.id.item_choose_config_file -> {
                     presenter.chooseFileButtonClicked()
                     true
                 }
@@ -85,12 +92,12 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         super.onStart()
         val sharedPreferences = activity?.getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
 
-        if(presenter.mainPackagePath == null || presenter.mainPackagePath == ""){
-            presenter.mainPackagePath = sharedPreferences?.getString(MAIN_PACKAGE, null)?: ""
-            presenter.picturesObjectsPath = sharedPreferences?.getString(OBJECTS_PACKAGE, null)?: ""
-            presenter.picturesActionsPath = sharedPreferences?.getString(ACTIONS_PACKAGE, null)?: ""
-            presenter.picturesOtherPath = sharedPreferences?.getString(OTHER_PACKAGE, null)?: ""
-            presenter.soundsPath = sharedPreferences?.getString(SOUNDS_PACKAGE, null)?: ""
+        if(presenter.rootPackageUri == null || presenter.rootPackageUri == ""){
+            presenter.rootPackageUri = sharedPreferences?.getString(ROOT_PACKAGE_URI, null)?: ""
+            presenter.picturesObjectsPackageName = sharedPreferences?.getString(OBJECTS_PACKAGE, null)?: ""
+            presenter.picturesActionsPackageName = sharedPreferences?.getString(ACTIONS_PACKAGE, null)?: ""
+            presenter.picturesOtherPackageName = sharedPreferences?.getString(OTHER_PACKAGE, null)?: ""
+            presenter.soundsPackageName = sharedPreferences?.getString(SOUNDS_PACKAGE, null)?: ""
             presenter.toneSoundFileName = sharedPreferences?.getString(TONE_SOUND_FILE_NAME, null)?: ""
 
             println("onStart, mainPackagePath: $presenter.mainPackagePath")
@@ -99,7 +106,7 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         val deviceAddress = sharedPreferences?.getString(DEVICE_ADDRESS, null)
         val deviceName = sharedPreferences?.getString(DEVICE_NAME, null)
 
-        presenter.onStart (Device(deviceName ?: "", deviceAddress ?: ""))
+        presenter.onStart(Device(deviceName ?: "", deviceAddress ?: ""))
     }
 
     override fun onResume() {
@@ -113,8 +120,8 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
 
     override fun hideActionBar() {
         activity?.window?.setFlags(
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
         activity?.actionBar?.hide()
     }
@@ -129,24 +136,47 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     }
 
     override fun showImage(imageName: String, subtype: String) {
-        val imagePath: String
         when(subtype){
             "object" -> {
-                imagePath = presenter.picturesObjectsPath + File.separator + imageName
-                val imageFile = File(imagePath)
-                binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
+                val imageUri = getDocumentUriWithRootUri("/${presenter.picturesObjectsPackageName}/${imageName}",
+                        presenter.rootPackageUri)
+                imageUri?.let{ showImageWithUri(it) }
             }
             "action" -> {
-                imagePath = presenter.picturesActionsPath + File.separator + imageName
-                val imageFile = File(imagePath)
-                binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
+                val imageUri = getDocumentUriWithRootUri("/${presenter.picturesActionsPackageName}/${imageName}",
+                        presenter.rootPackageUri)
+                imageUri?.let{ showImageWithUri(it) }
             }
             "other" -> {
-                imagePath = presenter.picturesOtherPath + File.separator + imageName
-                val imageFile = File(imagePath)
-                binding.ivViewer.setImageURI(Uri.fromFile(imageFile))
+                val imageUri = getDocumentUriWithRootUri("/${presenter.picturesOtherPackageName}/${imageName}",
+                        presenter.rootPackageUri)
+                imageUri?.let{ showImageWithUri(imageUri) }
             }
         }
+    }
+
+    private fun getDocumentUriWithRootUri(docRelativePath: String, rootUriString: String?): Uri?{
+        val rootUri = Uri.parse(rootUriString)
+        val id = DocumentsContract.getTreeDocumentId(rootUri)
+        val docFileId = "$id$docRelativePath"
+
+        val docUri = DocumentsContract.buildDocumentUriUsingTree(rootUri, docFileId)
+        val docFile = DocumentFile.fromSingleUri(requireContext(), docUri)
+
+        return if (docFile != null && docFile.exists()) {
+            val trueDocUri = docFile.uri
+            trueDocUri
+        } else null
+    }
+
+    private fun showImageWithUri(imageUri: Uri){
+        val contentResolver = activity?.contentResolver
+        val parcelFileDescriptor: ParcelFileDescriptor? =
+                contentResolver?.openFileDescriptor(imageUri, "r")
+        val fileDescriptor: FileDescriptor? = parcelFileDescriptor?.fileDescriptor
+        val image: Bitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor)
+        parcelFileDescriptor?.close()
+        binding.ivViewer.setImageBitmap(image)
     }
 
     override fun hideTextView() {
@@ -174,26 +204,30 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     }
 
     override fun startAudio(audioName: String) {
-        val audioPath = presenter.soundsPath + File.separator + audioName
-        val audioFile = File(audioPath)
-
-        mediaPlayer.reset()
-        mediaPlayer.setDataSource(requireContext(), Uri.fromFile(audioFile))
-        mediaPlayer.setOnCompletionListener {
-            // do smth
+        val contentResolver = activity?.contentResolver
+        val soundUri = getDocumentUriWithRootUri("/${presenter.soundsPackageName}/$audioName", presenter.rootPackageUri)
+        if (soundUri != null) {
+            println("soundUri = $soundUri")
+            val parcelFileDescriptor: ParcelFileDescriptor? =
+                    contentResolver?.openFileDescriptor(soundUri, "r")
+            val fileDescriptor: FileDescriptor? = parcelFileDescriptor?.fileDescriptor
+            mediaPlayer.reset()
+            mediaPlayer.setDataSource(fileDescriptor)
+            mediaPlayer.setOnCompletionListener {}
+            mediaPlayer.prepare()
+            mediaPlayer.start()
         }
-        mediaPlayer.prepare()
-        mediaPlayer.start()
     }
 
     override fun startToneAudioIfEnable(tone: Boolean) {
-        if(tone && presenter.toneSoundFileName != null) startAudio(presenter.toneSoundFileName!!)
+        if(tone && presenter.toneSoundFileName != null)
+            startAudio(presenter.toneSoundFileName!!)
     }
 
     override fun openChooseFileAlertDialog() {
         val builder = AlertDialog.Builder(requireContext())
-        builder.setTitle(R.string.file_path_is_not_set)
-            .setMessage(R.string.choose_config_file)
+        builder.setTitle(R.string.directory_is_not_set)
+            .setMessage(R.string.choose_directory)
             .setIcon(R.drawable.ic_baseline_folder_open_24)
             .setCancelable(false)
             .setPositiveButton(R.string.ok) { _: DialogInterface, _: Int ->
@@ -204,25 +238,40 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
 
     override fun openFileChooser() {
         val intent = Intent()
-            .setType("text/plain")
-            .setAction(Intent.ACTION_GET_CONTENT)
-        startActivityForResult(Intent.createChooser(intent, resources.getString(R.string.file_picker)), REQUEST_OPEN_FILE_CHOOSER)
+                .setAction(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                .addFlags(
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                .addFlags( Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                .addFlags( Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+        startActivityForResult(
+                Intent.createChooser(intent, resources.getString(R.string.directory_chooser)), REQUEST_OPEN_DIRECTORY_CHOOSER
+        )
     }
 
     override fun showDataTransmittingExceptionToast(exceptionMessage: String) {
-        Toast.makeText(requireContext(),
+        Toast.makeText(
+                requireContext(),
                 resources.getString(R.string.data_transmitting_exception) + exceptionMessage,
-                Toast.LENGTH_LONG).show()
+                Toast.LENGTH_LONG
+        ).show()
 
     }
 
     override fun showUnableToConnectDeviceToast(deviceNameAndError: String) {
-        Toast.makeText(requireContext(), resources.getString(R.string.unable_to_connect_device)
-                + deviceNameAndError, Toast.LENGTH_LONG).show()
+        Toast.makeText(
+                requireContext(), resources.getString(R.string.unable_to_connect_device)
+                + deviceNameAndError, Toast.LENGTH_LONG
+        ).show()
     }
 
     override fun showChooseDeviceToast() {
-        Toast.makeText(requireContext(), resources.getString(R.string.choose_device), Toast.LENGTH_LONG).show()
+        Toast.makeText(
+                requireContext(),
+                resources.getString(R.string.choose_device),
+                Toast.LENGTH_LONG
+        ).show()
     }
 
     override fun showConnectedWithMessage(deviceName: String) {
@@ -236,68 +285,77 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     }
 
     override fun showDeviceConnectedToast() {
-        Toast.makeText(requireContext(), resources.getString(R.string.device_connected), Toast.LENGTH_LONG).show()
+        Toast.makeText(
+                requireContext(),
+                resources.getString(R.string.device_connected),
+                Toast.LENGTH_LONG
+        ).show()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         println("***VIEW FRAGMENT onActivityResult***")
         when(requestCode) {
-            REQUEST_OPEN_FILE_CHOOSER -> {
+            REQUEST_OPEN_DIRECTORY_CHOOSER -> {
                 if (resultCode == Activity.RESULT_OK) {
-                    val fileUri = data?.data
-                    println("fileUri = $fileUri")
-
-                    fileUri?.let {
-                        val path: String? = FilePathGetter().getPath(requireContext(), fileUri)
-                        savePathToSharedPreferences(path)
-                        println("file path: $path")
+                    val rootUri = data?.data
+                    println("rootUri = $rootUri")
+                    rootUri?.let {
+                        val takeFlags: Int = data.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                        activity?.contentResolver?.takePersistableUriPermission(rootUri, takeFlags)
+                        saveUriToSharedPreferences(it)
                     }
                 }
             }
         }
     }
 
-    private fun savePathToSharedPreferences(path: String?) {
-        path?.let {
-            val configFile = File(path)
-            presenter.mainPackagePath =
-                path.subSequence(0, path.length - configFile.name.length - 1).toString()
-            val packageNameArray = configFile.readLines()
-            println("packageNameArray = $packageNameArray")
-            for (packageName in packageNameArray) {
-                when (packageName.split("-").first()) {
-                    ACTIONS -> presenter.picturesActionsPath =
-                        presenter.mainPackagePath + File.separator + packageName.split("-")
-                            .last()
-                    OBJECTS -> presenter.picturesObjectsPath =
-                        presenter.mainPackagePath + File.separator + packageName.split("-")
-                            .last()
-                    OTHER -> presenter.picturesOtherPath =
-                        presenter.mainPackagePath + File.separator + packageName.split("-")
-                            .last()
-                    SOUNDS -> presenter.soundsPath =
-                        presenter.mainPackagePath + File.separator + packageName.split("-")
-                            .last()
-                    TONE -> presenter.toneSoundFileName = packageName.split("-").last()
-                    else -> Toast.makeText(
+    private fun saveUriToSharedPreferences(rootUri: Uri) {
+        presenter.rootPackageUri = rootUri.toString()
+        val rootTree = DocumentFile.fromTreeUri(requireContext(), rootUri)
+        val docFile: DocumentFile? = rootTree?.findFile(CONFIGURATION_FILE_NAME)
+        val configFilePath = docFile?.uri
+        println("configFilePath: ${configFilePath}")
+
+        val packageNameArray: MutableList<String> = mutableListOf()
+        activity?.contentResolver?.openInputStream(configFilePath!!)?.use { inputStream ->
+            BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                var line: String? = reader.readLine()
+                while (line != null) {
+                    packageNameArray.add(line)
+                    line = reader.readLine()
+                }
+            }
+        }
+        println("packageNameArray = $packageNameArray")
+        for (packageName in packageNameArray) {
+            when (packageName.split("-").first()) {
+                ACTIONS -> {
+                    presenter.picturesActionsPackageName = packageName.split("-").last()
+                    println("picturesActionsPath = ${presenter.picturesActionsPackageName}")
+                }
+                OBJECTS -> presenter.picturesObjectsPackageName = packageName.split("-").last()
+                OTHER -> presenter.picturesOtherPackageName = packageName.split("-").last()
+                SOUNDS -> presenter.soundsPackageName = packageName.split("-").last()
+                TONE -> presenter.toneSoundFileName = packageName.split("-").last()
+                else -> Toast.makeText(
                         requireContext(),
                         resources.getString(R.string.wrong_config_file),
                         Toast.LENGTH_LONG
-                    ).show()
-                }
+                ).show()
             }
-            val sharedPreferences =
-                activity?.getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
-            val editor: SharedPreferences.Editor? = sharedPreferences?.edit()
-            if (editor != null) {
-                editor.putString(MAIN_PACKAGE, presenter.mainPackagePath)
-                editor.putString(ACTIONS_PACKAGE, presenter.picturesActionsPath)
-                editor.putString(OBJECTS_PACKAGE, presenter.picturesObjectsPath)
-                editor.putString(OTHER_PACKAGE, presenter.picturesOtherPath)
-                editor.putString(SOUNDS_PACKAGE, presenter.soundsPath)
-                editor.putString(TONE_SOUND_FILE_NAME, presenter.toneSoundFileName)
-                editor.apply()
-            }
+        }
+        val sharedPreferences =
+            activity?.getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
+        val editor: SharedPreferences.Editor? = sharedPreferences?.edit()
+        if (editor != null) {
+            editor.putString(ROOT_PACKAGE_URI, presenter.rootPackageUri)
+            editor.putString(ACTIONS_PACKAGE, presenter.picturesActionsPackageName)
+            editor.putString(OBJECTS_PACKAGE, presenter.picturesObjectsPackageName)
+            editor.putString(OTHER_PACKAGE, presenter.picturesOtherPackageName)
+            editor.putString(SOUNDS_PACKAGE, presenter.soundsPackageName)
+            editor.putString(TONE_SOUND_FILE_NAME, presenter.toneSoundFileName)
+            editor.apply()
         }
     }
 
