@@ -9,7 +9,9 @@
     <string name="searching">Searching...</string>
     <string name="permissions_not_granted">Permissions not granted</string>
     <string name="choose_folder">Choose folder</string>
-    <string name="wrong_config_file">Wrong configuration file</string>
+    <string name="wrong_directory">Wrong directory: config file not found</string>
+    <string name="cant_find_config_file">Can not find config file</string>
+    <string name="wrong_config_file">Wrong config file</string>
     <string name="directory_is_not_set">Directory is not set</string>
     <string name="choose_directory">Please, choose directory</string>
     <string name="directory_chooser">Directory chooser</string>

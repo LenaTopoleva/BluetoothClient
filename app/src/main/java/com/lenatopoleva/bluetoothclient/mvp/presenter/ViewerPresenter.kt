@@ -8,6 +8,7 @@ import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import com.lenatopoleva.bluetoothclient.mvp.model.repository.IRepository
 import com.lenatopoleva.bluetoothclient.mvp.view.ViewerView
 import com.lenatopoleva.bluetoothclient.navigation.Screens
+import com.orhanobut.logger.Logger
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -39,9 +40,9 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
     var currentDeviceFromSharedPrefs: Device? = null
     var dataIsTransmitting: Boolean = false
 
-    fun onStart( deviceFromSharedPrefs: Device) {
-//        if (mainPackagePath == null || mainPackagePath == ""){
+    fun onResume( deviceFromSharedPrefs: Device) {
         if (rootPackageUri == null || rootPackageUri == ""){
+            Logger.d("ViewerPresenter onResume; rootPackageUri = $rootPackageUri.")
             viewState.openChooseFileAlertDialog()
         }
         else {
@@ -49,17 +50,20 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
             val deviceStatus = device?.status
             if (device != null) {
                 if (deviceStatus == ConnectingStatus.CONNECTED && !dataIsTransmitting) {
-                    println("onStart, deviceStatus: ${device.status}, dataIsTransmitting: $dataIsTransmitting")
+                    Logger.d("ViewerPresenter onResume; deviceStatus: ${device.status}, dataIsTransmitting: $dataIsTransmitting\"")
+                    println("onResume, deviceStatus: ${device.status}, dataIsTransmitting: $dataIsTransmitting")
                     viewState.showConnectedWithMessage(device.name)
                     startDataTransmitting(device)
                 }
                 if (deviceStatus == ConnectingStatus.NOT_CONNECTED) {
-                    println("onStart, deviceStatus: ${device.status}")
+                    Logger.d("ViewerPresenter onResume; deviceStatus: ${device.status}")
+                    println("onResume, deviceStatus: ${device.status}")
                     tryToConnect(device)
                 }
             } else if (deviceFromSharedPrefs.address != "") {
                 currentDeviceFromSharedPrefs = deviceFromSharedPrefs
-                println("onStart, device = null, deviceFromSharedPrefs.address != \"\"")
+                Logger.d("ViewerPresenter onResume;  device from repo = null, deviceFromSharedPrefs.address != \"\"")
+                println("onResume, device = null, deviceFromSharedPrefs.address != \"\"")
                 tryToConnect(deviceFromSharedPrefs)
             }
         }
@@ -71,12 +75,14 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
             .subscribe(
                 {
                     changeDeviceStatus(device, ConnectingStatus.CONNECTED)
+                    Logger.d("ViewerPresenter tryToConnect; Device connected, device status from repo: ${(repository.getDevice() as Device).status}")
                     println("Device connected, device status from repo: ${(repository.getDevice() as Device).status}")
                     viewState.showConnectedWithMessage(device.name)
                     viewState.showDeviceConnectedToast()
                     startDataTransmitting(device) },
                 {
                     viewState.showUnableToConnectDeviceToast("${device.name}: ${it.message}")
+                    Logger.e("ViewerPresenter tryToConnect; Unable to connect device: ${it.message}")
                     println("Unable to connect device: ${it.message}")
                     bluetoothService.closeSocket()
                 }
@@ -93,6 +99,7 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                 {   response ->
                     val bluetoothResponse = Gson()
                         .fromJson(response, BluetoothResponse::class.java)
+                    Logger.d("ViewerPresenter startDataTransmitting; got response, type = ${bluetoothResponse.type}")
                     println("RESPONSE TYPE = ${bluetoothResponse.type}")
                     when(bluetoothResponse.type) {
                         "show_image" -> {
@@ -116,6 +123,7 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                     val errorMessage = it.message
                     errorMessage?.let { message ->
                         viewState.showDataTransmittingExceptionToast(message)
+                        Logger.e("ViewerPresenter startDataTransmitting; data transmitting exception: $errorMessage")
                     }
                     println("Data transmitting exception: ${it.message}")
                     bluetoothService.stopDataTransmitting()
@@ -144,6 +152,8 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
     private fun changeDeviceStatus(device: Device, status: ConnectingStatus){
         device.status = status
         repository.saveDevice(device)
+        Logger.d("ViewerPresenter changeDeviceStatus; new status: $status, " +
+                "device ${device.name} saved to repo")
     }
 
     fun backClick(): Boolean {
@@ -161,18 +171,29 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
     }
 
     fun chooseFileButtonClicked() {
-        viewState.openFileChooser()
+        viewState.openFilePicker()
     }
 
     fun fabReconnectClicked() {
         val device = repository.getDevice()
         if (device != null) {
+            Logger.d("ViewerPresenter fabReconnectClicked; device from repo != null, " +
+                    "status = ${device.status}")
             if (device.status == ConnectingStatus.NOT_CONNECTED) tryToConnect(device)
             else viewState.showDeviceConnectedToast()
         }
         else if (currentDeviceFromSharedPrefs != null && currentDeviceFromSharedPrefs!!.address != ""){
+            Logger.d("ViewerPresenter fabReconnectClicked; device from repo = $device, " +
+                    "currentDeviceFromSharedPrefs != null")
             tryToConnect(currentDeviceFromSharedPrefs!!)
-        } else viewState.showChooseDeviceToast()
+        } else {
+            if(currentDeviceFromSharedPrefs == null) Logger.d("ViewerPresenter " +
+                    "fabReconnectClicked; device from repo = $device, " +
+                    "currentDeviceFromSharedPrefs = null")
+            else Logger.d("ViewerPresenter fabReconnectClicked; device from repo = $device," +
+                    " currentDeviceFromSharedPrefs address = ${currentDeviceFromSharedPrefs!!.address}")
+            viewState.showChooseDeviceToast()
+        }
     }
 
 }

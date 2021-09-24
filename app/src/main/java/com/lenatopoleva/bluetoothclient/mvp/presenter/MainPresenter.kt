@@ -20,6 +20,7 @@ class MainPresenter: MvpPresenter<MainView>() {
 
     override fun onFirstViewAttach() {
         super.onFirstViewAttach()
+        openViewerScreen()
     }
 
     fun backClick() {
@@ -27,6 +28,7 @@ class MainPresenter: MvpPresenter<MainView>() {
     }
 
     fun openViewerScreen() {
+        println("MainPresenter: openViewerScreen")
         router.replaceScreen(primaryScreen)
     }
 

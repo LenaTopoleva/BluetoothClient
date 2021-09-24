@@ -4,6 +4,7 @@ import android.app.Application
 import com.lenatopoleva.bluetoothclient.di.AppComponent
 import com.lenatopoleva.bluetoothclient.di.DaggerAppComponent
 import com.lenatopoleva.bluetoothclient.di.modules.AppModule
+import com.lenatopoleva.bluetoothclient.util.logger.createLoggerWithDiskLogAdapter
 
 class App: Application() {
 
@@ -16,6 +17,7 @@ class App: Application() {
 
     override fun onCreate() {
         super.onCreate()
+        createLoggerWithDiskLogAdapter(this, "MyTag")
         instance = this
         appComponent =  DaggerAppComponent.builder()
             .appModule(AppModule(this))

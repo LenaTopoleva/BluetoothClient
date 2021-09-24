@@ -7,6 +7,7 @@ import com.lenatopoleva.bluetoothclient.mvp.model.repository.IRepository
 import com.lenatopoleva.bluetoothclient.mvp.presenter.list.IDevicesListPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.ConnectionView
 import com.lenatopoleva.bluetoothclient.mvp.view.list.DeviceItemView
+import com.orhanobut.logger.Logger
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import moxy.MvpPresenter
@@ -65,15 +66,28 @@ class ConnectionPresenter: MvpPresenter<ConnectionView>() {
         searchNewDevices()
 
         pairedDevicesListPresenter.itemClickListener = { view ->
-            view.showConnectingStatus()
-            bluetoothServiceImpl.cancelSearch()
-            tryToConnect(pairedDevicesListPresenter.pairedDevices[view.pos], view)
+            onItemClicked(pairedDevicesListPresenter.pairedDevices[view.pos], view)
         }
         newDevicesListPresenter.itemClickListener = { view ->
-            view.showConnectingStatus()
-            bluetoothServiceImpl.cancelSearch()
-            tryToConnect(pairedDevicesListPresenter.pairedDevices[view.pos], view)
+           onItemClicked(pairedDevicesListPresenter.pairedDevices[view.pos], view)
         }
+    }
+
+    private fun onItemClicked(device: Device, view: DeviceItemView){
+        val deviceFromRepo = repository.getDevice()
+        if (deviceFromRepo != null && deviceFromRepo.address == device.address){
+            if (deviceFromRepo.status == ConnectingStatus.CONNECTED) {
+                Logger.d("ConnectionPresenter onItemClicked; this device is already connected")
+                viewState.showDeviceConnectedToast()
+            } else { startConnecting(deviceFromRepo, view) }
+        } else startConnecting(device, view)
+    }
+
+    private fun startConnecting(device: Device, itemView: DeviceItemView){
+        Logger.d("ConnectionPresenter startConnecting; to device: ${device.name}")
+        itemView.showConnectingStatus()
+        bluetoothServiceImpl.cancelSearch()
+        tryToConnect(device, itemView)
     }
 
     private fun tryToConnect(device: Device, itemView: DeviceItemView){
@@ -84,6 +98,7 @@ class ConnectionPresenter: MvpPresenter<ConnectionView>() {
                         repository.saveDevice(device)
                         itemView.hideConnectionStatus()
                         println("Device connected")
+                        Logger.d("ConnectionPresenter tryToConnect; device ${device.name} connected")
                         viewState.saveDeviceToSharedPreferences(device)
                         router.exit()
                     },
@@ -91,6 +106,7 @@ class ConnectionPresenter: MvpPresenter<ConnectionView>() {
                         itemView.hideConnectionStatus()
                         viewState.showUnableToConnectDeviceMessage(it.message)
                         println("Unable to connect device: ${it.message}")
+                        Logger.e("ConnectionPresenter tryToConnect; Unable to connect device: ${it.message}")
                         bluetoothServiceImpl.closeSocket()
                     }
             ))

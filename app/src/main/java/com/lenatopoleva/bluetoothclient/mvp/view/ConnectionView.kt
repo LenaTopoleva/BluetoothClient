@@ -3,6 +3,7 @@ package com.lenatopoleva.bluetoothclient.mvp.view
 import com.lenatopoleva.bluetoothclient.mvp.model.entity.Device
 import moxy.MvpView
 import moxy.viewstate.strategy.alias.AddToEndSingle
+import moxy.viewstate.strategy.alias.Skip
 
 @AddToEndSingle
 interface ConnectionView: MvpView {
@@ -14,4 +15,7 @@ interface ConnectionView: MvpView {
     fun showSearchingTextView()
     fun hideSearchingTextView()
     fun showUnableToConnectDeviceMessage(errorMessage: String?)
+
+    @Skip
+    fun showDeviceConnectedToast()
 }

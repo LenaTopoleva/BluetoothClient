@@ -22,6 +22,7 @@ import com.lenatopoleva.bluetoothclient.ui.adapter.DevicesListAdapter
 import com.lenatopoleva.bluetoothclient.util.DEVICE_ADDRESS
 import com.lenatopoleva.bluetoothclient.util.DEVICE_NAME
 import com.lenatopoleva.bluetoothclient.util.MY_PREFS_NAME
+import com.orhanobut.logger.Logger
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
 
@@ -107,6 +108,14 @@ class ConnectionFragment: MvpAppCompatFragment(), ConnectionView, BackButtonList
         Toast.makeText(requireContext(), resources.getString(R.string.unable_to_connect_device) + errorMessage, Toast.LENGTH_LONG).show()
     }
 
+    override fun showDeviceConnectedToast() {
+        Toast.makeText(
+            requireContext(),
+            resources.getString(R.string.device_connected),
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
     override fun saveDeviceToSharedPreferences(device: Device) {
         val sharedPreferences = activity?.getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
         val editor: SharedPreferences.Editor? = sharedPreferences?.edit()
@@ -114,6 +123,7 @@ class ConnectionFragment: MvpAppCompatFragment(), ConnectionView, BackButtonList
             editor.putString(DEVICE_ADDRESS, device.address)
             editor.putString(DEVICE_NAME, device.name)
             editor.apply()
+            Logger.d("ConnectionFragment saveDeviceToSharedPreferences; device ${device.name} saved to SP")
         }
     }
 

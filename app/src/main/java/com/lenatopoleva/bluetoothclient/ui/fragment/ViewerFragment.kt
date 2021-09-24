@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.content.Intent.createChooser
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -21,6 +22,8 @@ import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
 import com.lenatopoleva.bluetoothclient.App
 import com.lenatopoleva.bluetoothclient.R
@@ -30,11 +33,13 @@ import com.lenatopoleva.bluetoothclient.mvp.presenter.ViewerPresenter
 import com.lenatopoleva.bluetoothclient.mvp.view.ViewerView
 import com.lenatopoleva.bluetoothclient.ui.BackButtonListener
 import com.lenatopoleva.bluetoothclient.util.*
+import com.orhanobut.logger.Logger
 import moxy.MvpAppCompatFragment
 import moxy.ktx.moxyPresenter
 import java.io.BufferedReader
 import java.io.FileDescriptor
 import java.io.InputStreamReader
+import java.lang.UnsupportedOperationException
 import javax.inject.Inject
 
 
@@ -59,6 +64,24 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     @Inject
     lateinit var mediaPlayer: MediaPlayer
 
+    private val filePickerActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        result: ActivityResult ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            println("***VIEW FRAGMENT onActivityResult FILE PICKER***")
+            Logger.d("ViewerFragment file picker activity result; resultCode: ${result.resultCode}, ok is -1")
+            val rootUri = result.data?.data
+            println("rootUri = $rootUri")
+            Logger.d("ViewerFragment file picker activity result; got rootUri: $rootUri")
+            rootUri?.let {
+                presenter.rootPackageUri = rootUri.toString()
+                val takeFlags: Int = result.data!!.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                activity?.contentResolver?.takePersistableUriPermission(rootUri, takeFlags)
+                saveUriToSharedPreferences(it)
+            }
+        } else Logger.e("ViewerFragment file picker activity result; resultCode: ${result.resultCode}, ok is -1")
+    }
+
     init {
         App.instance.appComponent.inject(this)
     }
@@ -77,6 +100,7 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
                     true
                 }
                 R.id.item_choose_config_file -> {
+                    Logger.d("Choose file menu item clicked")
                     presenter.chooseFileButtonClicked()
                     true
                 }
@@ -87,9 +111,32 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         return view
     }
 
+    override fun openFilePicker() {
+        val intent = Intent()
+            .setAction(Intent.ACTION_OPEN_DOCUMENT_TREE)
+            .addFlags(
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+            .addFlags( Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            .addFlags( Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+
+        val chooserIntent =  createChooser(intent, resources.getString(R.string.directory_chooser))
+
+        filePickerActivityResultLauncher.launch(chooserIntent)
+        Logger.d("ViewerFragment openFilePicker; action is Intent.ACTION_OPEN_DOCUMENT_TREE")
+    }
+
     override fun onStart() {
+        Logger.d("ViewerFragment onStart")
         println("***VIEW FRAGMENT OnStart***")
         super.onStart()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Logger.d("ViewerFragment onResume")
+        println("***VIEW FRAGMENT onResume***")
         val sharedPreferences = activity?.getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
 
         if(presenter.rootPackageUri == null || presenter.rootPackageUri == ""){
@@ -99,19 +146,12 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
             presenter.picturesOtherPackageName = sharedPreferences?.getString(OTHER_PACKAGE, null)?: ""
             presenter.soundsPackageName = sharedPreferences?.getString(SOUNDS_PACKAGE, null)?: ""
             presenter.toneSoundFileName = sharedPreferences?.getString(TONE_SOUND_FILE_NAME, null)?: ""
-
-            println("onStart, mainPackagePath: $presenter.mainPackagePath")
         }
 
         val deviceAddress = sharedPreferences?.getString(DEVICE_ADDRESS, null)
         val deviceName = sharedPreferences?.getString(DEVICE_NAME, null)
 
-        presenter.onStart(Device(deviceName ?: "", deviceAddress ?: ""))
-    }
-
-    override fun onResume() {
-        super.onResume()
-        println("***VIEW FRAGMENT onResume***")
+        presenter.onResume(Device(deviceName ?: "", deviceAddress ?: ""))
     }
 
     override fun hideAppBar() {
@@ -236,42 +276,17 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         builder.create().show()
     }
 
-    override fun openFileChooser() {
-        val intent = Intent()
-                .setAction(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                .addFlags(
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                )
-                .addFlags( Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-                .addFlags( Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
-        startActivityForResult(
-                Intent.createChooser(intent, resources.getString(R.string.directory_chooser)), REQUEST_OPEN_DIRECTORY_CHOOSER
-        )
-    }
-
     override fun showDataTransmittingExceptionToast(exceptionMessage: String) {
-        Toast.makeText(
-                requireContext(),
-                resources.getString(R.string.data_transmitting_exception) + exceptionMessage,
-                Toast.LENGTH_LONG
-        ).show()
-
+        showToast(resources.getString(R.string.data_transmitting_exception) + exceptionMessage)
     }
 
     override fun showUnableToConnectDeviceToast(deviceNameAndError: String) {
-        Toast.makeText(
-                requireContext(), resources.getString(R.string.unable_to_connect_device)
-                + deviceNameAndError, Toast.LENGTH_LONG
-        ).show()
+        showToast(resources.getString(R.string.unable_to_connect_device)
+                + deviceNameAndError)
     }
 
     override fun showChooseDeviceToast() {
-        Toast.makeText(
-                requireContext(),
-                resources.getString(R.string.choose_device),
-                Toast.LENGTH_LONG
-        ).show()
+        showToast(resources.getString(R.string.choose_device))
     }
 
     override fun showConnectedWithMessage(deviceName: String) {
@@ -285,64 +300,54 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     }
 
     override fun showDeviceConnectedToast() {
-        Toast.makeText(
-                requireContext(),
-                resources.getString(R.string.device_connected),
-                Toast.LENGTH_LONG
-        ).show()
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        println("***VIEW FRAGMENT onActivityResult***")
-        when(requestCode) {
-            REQUEST_OPEN_DIRECTORY_CHOOSER -> {
-                if (resultCode == Activity.RESULT_OK) {
-                    val rootUri = data?.data
-                    println("rootUri = $rootUri")
-                    rootUri?.let {
-                        val takeFlags: Int = data.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                    or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                        activity?.contentResolver?.takePersistableUriPermission(rootUri, takeFlags)
-                        saveUriToSharedPreferences(it)
-                    }
-                }
-            }
-        }
+        showToast( resources.getString(R.string.device_connected))
     }
 
     private fun saveUriToSharedPreferences(rootUri: Uri) {
-        presenter.rootPackageUri = rootUri.toString()
+        Logger.d("ViewerFragment saveUriToSharedPreferences")
         val rootTree = DocumentFile.fromTreeUri(requireContext(), rootUri)
-        val docFile: DocumentFile? = rootTree?.findFile(CONFIGURATION_FILE_NAME)
-        val configFilePath = docFile?.uri
-        println("configFilePath: ${configFilePath}")
+        val docFile: DocumentFile?
+        try {
+            docFile = rootTree?.findFile(CONFIGURATION_FILE_NAME)
+        } catch (ex: UnsupportedOperationException) {
+            Logger.e("ViewerFragment saveUriToSharedPreferences; can't find config file: ${ex.message} ")
+            showToast(resources.getString(R.string.cant_find_config_file) + " ${ex.message}")
+            return
+        }
+        val configFileUri = docFile?.uri
+        println("configFileUri: $configFileUri")
+        Logger.d("ViewerFragment saveUriToSharedPreferences; configFilePath: $configFileUri")
 
         val packageNameArray: MutableList<String> = mutableListOf()
-        activity?.contentResolver?.openInputStream(configFilePath!!)?.use { inputStream ->
-            BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                var line: String? = reader.readLine()
-                while (line != null) {
-                    packageNameArray.add(line)
-                    line = reader.readLine()
+        if (configFileUri != null) {
+            activity?.contentResolver?.openInputStream(configFileUri)?.use { inputStream ->
+                BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                    var line: String? = reader.readLine()
+                    while (line != null) {
+                        packageNameArray.add(line)
+                        line = reader.readLine()
+                    }
                 }
             }
+        } else {
+            Logger.d("ViewerFragment saveUriToSharedPreferences; Wrong directory, config file not found, leave method")
+            showToast(resources.getString(R.string.wrong_directory))
+            return
         }
+        Logger.d("ViewerFragment saveUriToSharedPreferences; Config file data: $packageNameArray")
         println("packageNameArray = $packageNameArray")
         for (packageName in packageNameArray) {
             when (packageName.split("-").first()) {
                 ACTIONS -> {
                     presenter.picturesActionsPackageName = packageName.split("-").last()
+                    Logger.d("picturesActionsPath = ${presenter.picturesActionsPackageName}")
                     println("picturesActionsPath = ${presenter.picturesActionsPackageName}")
                 }
                 OBJECTS -> presenter.picturesObjectsPackageName = packageName.split("-").last()
                 OTHER -> presenter.picturesOtherPackageName = packageName.split("-").last()
                 SOUNDS -> presenter.soundsPackageName = packageName.split("-").last()
                 TONE -> presenter.toneSoundFileName = packageName.split("-").last()
-                else -> Toast.makeText(
-                        requireContext(),
-                        resources.getString(R.string.wrong_config_file),
-                        Toast.LENGTH_LONG
-                ).show()
+                else -> showToast( resources.getString(R.string.wrong_config_file))
             }
         }
         val sharedPreferences =
@@ -357,6 +362,11 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
             editor.putString(TONE_SOUND_FILE_NAME, presenter.toneSoundFileName)
             editor.apply()
         }
+    }
+
+    private fun showToast(message: String){
+        Toast.makeText(requireContext(), message,
+            Toast.LENGTH_LONG).show()
     }
 
     override fun backPressed() = presenter.backClick()
