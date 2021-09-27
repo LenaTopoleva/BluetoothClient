@@ -104,9 +104,9 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                     when(bluetoothResponse.type) {
                         "show_image" -> {
                             openPictureViewMode()
+                            viewState.startToneAudioIfEnable(bluetoothResponse.tone)
                             viewState.showImage(bluetoothResponse.fileName,
                                 bluetoothResponse.subtype)
-                            viewState.startToneAudioIfEnable(bluetoothResponse.tone)
                         }
                         "play_audio" -> viewState.startAudio(bluetoothResponse.fileName )
                         "stop_session" -> {

@@ -210,12 +210,14 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     }
 
     private fun showImageWithUri(imageUri: Uri){
+        Logger.d("ViewerFragment showImageWithUri; preparing to show image")
         val contentResolver = activity?.contentResolver
         val parcelFileDescriptor: ParcelFileDescriptor? =
                 contentResolver?.openFileDescriptor(imageUri, "r")
         val fileDescriptor: FileDescriptor? = parcelFileDescriptor?.fileDescriptor
         val image: Bitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor)
         parcelFileDescriptor?.close()
+        Logger.d("ViewerFragment showImageWithUri; image shows now")
         binding.ivViewer.setImageBitmap(image)
     }
 
@@ -244,6 +246,7 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     }
 
     override fun startAudio(audioName: String) {
+        Logger.d("ViewerFragment startAudio; preparing to start audio")
         val contentResolver = activity?.contentResolver
         val soundUri = getDocumentUriWithRootUri("/${presenter.soundsPackageName}/$audioName", presenter.rootPackageUri)
         if (soundUri != null) {
@@ -255,11 +258,13 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
             mediaPlayer.setDataSource(fileDescriptor)
             mediaPlayer.setOnCompletionListener {}
             mediaPlayer.prepare()
+            Logger.d("ViewerFragment startAudio; audio starts now")
             mediaPlayer.start()
         }
     }
 
     override fun startToneAudioIfEnable(tone: Boolean) {
+        Logger.d("ViewerFragment startToneAudioIfEnable; tone is enable: $tone")
         if(tone && presenter.toneSoundFileName != null)
             startAudio(presenter.toneSoundFileName!!)
     }
