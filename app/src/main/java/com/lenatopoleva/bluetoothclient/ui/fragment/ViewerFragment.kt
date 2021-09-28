@@ -64,6 +64,8 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
     @Inject
     lateinit var mediaPlayer: MediaPlayer
 
+    var currentImageBitmap: Bitmap? = null
+
     private val filePickerActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         result: ActivityResult ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -154,45 +156,63 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         presenter.onResume(Device(deviceName ?: "", deviceAddress ?: ""))
     }
 
-    override fun hideAppBar() {
-        binding.topAppBar.visibility = GONE
-    }
-
-    override fun hideActionBar() {
-        activity?.window?.setFlags(
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-        )
-        activity?.actionBar?.hide()
-    }
-
-    override fun showAppBar() {
-       binding.topAppBar.visibility = VISIBLE
-    }
-
-    override fun showActionBar() {
-        activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
-        activity?.actionBar?.show()
-    }
-
-    override fun showImage(imageName: String, subtype: String) {
+    override fun prepareImage(imageName: String, subtype: String) {
+        Logger.d("ViewerFragment prepareImage; start preparing to show image $imageName, type: $subtype")
         when(subtype){
             "object" -> {
                 val imageUri = getDocumentUriWithRootUri("/${presenter.picturesObjectsPackageName}/${imageName}",
-                        presenter.rootPackageUri)
-                imageUri?.let{ showImageWithUri(it) }
+                    presenter.rootPackageUri)
+                imageUri?.let { getImageBitmapFromUri(imageUri) }
             }
             "action" -> {
                 val imageUri = getDocumentUriWithRootUri("/${presenter.picturesActionsPackageName}/${imageName}",
-                        presenter.rootPackageUri)
-                imageUri?.let{ showImageWithUri(it) }
+                    presenter.rootPackageUri)
+                imageUri?.let { getImageBitmapFromUri(imageUri) }
             }
             "other" -> {
                 val imageUri = getDocumentUriWithRootUri("/${presenter.picturesOtherPackageName}/${imageName}",
-                        presenter.rootPackageUri)
-                imageUri?.let{ showImageWithUri(imageUri) }
+                    presenter.rootPackageUri)
+                imageUri?.let { getImageBitmapFromUri(imageUri) }
             }
         }
+    }
+
+    override fun showImage() {
+        Logger.d("ViewerFragment showImage; image shows now")
+        binding.ivViewer.setImageBitmap(currentImageBitmap)
+    }
+
+    override fun prepareToneAudioIfEnable(tone: Boolean) {
+        Logger.d("ViewerFragment prepareToneAudioIfEnable; tone is enable: $tone")
+        if(tone && presenter.toneSoundFileName != null)
+            prepareAudio(presenter.toneSoundFileName!!)
+    }
+
+    override fun prepareAudio(audioName: String) {
+        val contentResolver = activity?.contentResolver
+        val soundUri = getDocumentUriWithRootUri("/${presenter.soundsPackageName}/$audioName", presenter.rootPackageUri)
+        if (soundUri != null) {
+            println("soundUri = $soundUri")
+            val parcelFileDescriptor: ParcelFileDescriptor? =
+                contentResolver?.openFileDescriptor(soundUri, "r")
+            val fileDescriptor: FileDescriptor? = parcelFileDescriptor?.fileDescriptor
+            mediaPlayer.reset()
+            mediaPlayer.setDataSource(fileDescriptor)
+            mediaPlayer.setOnCompletionListener {}
+            mediaPlayer.prepare()
+        }
+    }
+
+    override fun startToneIfEnable(tone: Boolean) {
+        if(tone && presenter.toneSoundFileName != null) {
+            Logger.d("ViewerFragment startToneIfEnable; audio starts now")
+            mediaPlayer.start()
+        }
+    }
+
+    override fun startAudio() {
+        Logger.d("ViewerFragment startAudio; audio starts now")
+        mediaPlayer.start()
     }
 
     private fun getDocumentUriWithRootUri(docRelativePath: String, rootUriString: String?): Uri?{
@@ -209,16 +229,34 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
         } else null
     }
 
-    private fun showImageWithUri(imageUri: Uri){
-        Logger.d("ViewerFragment showImageWithUri; preparing to show image")
+    private fun getImageBitmapFromUri(imageUri: Uri){
         val contentResolver = activity?.contentResolver
         val parcelFileDescriptor: ParcelFileDescriptor? =
-                contentResolver?.openFileDescriptor(imageUri, "r")
+            contentResolver?.openFileDescriptor(imageUri, "r")
         val fileDescriptor: FileDescriptor? = parcelFileDescriptor?.fileDescriptor
-        val image: Bitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor)
+        currentImageBitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor)
         parcelFileDescriptor?.close()
-        Logger.d("ViewerFragment showImageWithUri; image shows now")
-        binding.ivViewer.setImageBitmap(image)
+    }
+
+    override fun hideAppBar() {
+        binding.topAppBar.visibility = GONE
+    }
+
+    override fun hideActionBar() {
+        activity?.window?.setFlags(
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+        activity?.actionBar?.hide()
+    }
+
+    override fun showAppBar() {
+        binding.topAppBar.visibility = VISIBLE
+    }
+
+    override fun showActionBar() {
+        activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+        activity?.actionBar?.show()
     }
 
     override fun hideTextView() {
@@ -243,30 +281,6 @@ class ViewerFragment: MvpAppCompatFragment(), ViewerView, BackButtonListener {
 
     override fun showFab() {
         binding.fabReconnect.visibility = VISIBLE
-    }
-
-    override fun startAudio(audioName: String) {
-        Logger.d("ViewerFragment startAudio; preparing to start audio")
-        val contentResolver = activity?.contentResolver
-        val soundUri = getDocumentUriWithRootUri("/${presenter.soundsPackageName}/$audioName", presenter.rootPackageUri)
-        if (soundUri != null) {
-            println("soundUri = $soundUri")
-            val parcelFileDescriptor: ParcelFileDescriptor? =
-                    contentResolver?.openFileDescriptor(soundUri, "r")
-            val fileDescriptor: FileDescriptor? = parcelFileDescriptor?.fileDescriptor
-            mediaPlayer.reset()
-            mediaPlayer.setDataSource(fileDescriptor)
-            mediaPlayer.setOnCompletionListener {}
-            mediaPlayer.prepare()
-            Logger.d("ViewerFragment startAudio; audio starts now")
-            mediaPlayer.start()
-        }
-    }
-
-    override fun startToneAudioIfEnable(tone: Boolean) {
-        Logger.d("ViewerFragment startToneAudioIfEnable; tone is enable: $tone")
-        if(tone && presenter.toneSoundFileName != null)
-            startAudio(presenter.toneSoundFileName!!)
     }
 
     override fun openChooseFileAlertDialog() {

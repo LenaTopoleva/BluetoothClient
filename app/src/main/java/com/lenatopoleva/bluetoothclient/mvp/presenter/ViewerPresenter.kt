@@ -9,6 +9,7 @@ import com.lenatopoleva.bluetoothclient.mvp.model.repository.IRepository
 import com.lenatopoleva.bluetoothclient.mvp.view.ViewerView
 import com.lenatopoleva.bluetoothclient.navigation.Screens
 import com.orhanobut.logger.Logger
+import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -37,10 +38,10 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
     var soundsPackageName: String? = null
     var toneSoundFileName: String? = null
 
-    var currentDeviceFromSharedPrefs: Device? = null
+    private var currentDeviceFromSharedPrefs: Device? = null
     var dataIsTransmitting: Boolean = false
 
-    fun onResume( deviceFromSharedPrefs: Device) {
+    fun onResume(deviceFromSharedPrefs: Device) {
         if (rootPackageUri == null || rootPackageUri == ""){
             Logger.d("ViewerPresenter onResume; rootPackageUri = $rootPackageUri.")
             viewState.openChooseFileAlertDialog()
@@ -79,7 +80,8 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
                     println("Device connected, device status from repo: ${(repository.getDevice() as Device).status}")
                     viewState.showConnectedWithMessage(device.name)
                     viewState.showDeviceConnectedToast()
-                    startDataTransmitting(device) },
+                    startDataTransmitting(device)
+                },
                 {
                     viewState.showUnableToConnectDeviceToast("${device.name}: ${it.message}")
                     Logger.e("ViewerPresenter tryToConnect; Unable to connect device: ${it.message}")
@@ -92,46 +94,71 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
     private fun startDataTransmitting(device: Device){
         dataIsTransmitting = true
         println("***Start Data Transmitting***")
-        disposables.add(bluetoothService.startDataTransmitting()
-            .subscribeOn(Schedulers.io())
-            .observeOn(uiScheduler)
-            .subscribe(
-                {   response ->
-                    val bluetoothResponse = Gson()
-                        .fromJson(response, BluetoothResponse::class.java)
-                    Logger.d("ViewerPresenter startDataTransmitting; got response, type = ${bluetoothResponse.type}")
-                    println("RESPONSE TYPE = ${bluetoothResponse.type}")
-                    when(bluetoothResponse.type) {
-                        "show_image" -> {
-                            openPictureViewMode()
-                            viewState.startToneAudioIfEnable(bluetoothResponse.tone)
-                            viewState.showImage(bluetoothResponse.fileName,
-                                bluetoothResponse.subtype)
+        disposables.add(
+            bluetoothService.startDataTransmitting()
+                .subscribeOn(Schedulers.io())
+                .observeOn(uiScheduler)
+                .subscribe(
+                    { response ->
+                        val bluetoothResponse = Gson()
+                            .fromJson(response, BluetoothResponse::class.java)
+                        Logger.d("ViewerPresenter startDataTransmitting; got response, type = ${bluetoothResponse.type}")
+                        println("RESPONSE TYPE = ${bluetoothResponse.type}")
+                        when (bluetoothResponse.type) {
+                            "show_image" -> {
+                                openPictureViewMode()
+                                prepareImage(bluetoothResponse.fileName, bluetoothResponse.subtype)
+                                    .mergeWith(prepareToneAudioIfEnable(bluetoothResponse.tone))
+                                    .subscribeOn(Schedulers.io())
+                                    .observeOn(uiScheduler)
+                                    .subscribe {
+                                        viewState.showImage()
+                                        viewState.startToneIfEnable(bluetoothResponse.tone)
+                                }
+                            }
+                            "play_audio" -> {
+                                prepareAudio(bluetoothResponse.fileName)
+                                    .subscribeOn(Schedulers.io())
+                                    .observeOn(uiScheduler)
+                                    .subscribe { viewState.startAudio() }
+                            }
+                            "stop_session" -> {
+                                closePictureViewMode()
+                                repository.getDevice()?.name?.let {
+                                    viewState.showConnectedWithMessage(
+                                        it
+                                    )
+                                }
+                            }
                         }
-                        "play_audio" -> viewState.startAudio(bluetoothResponse.fileName )
-                        "stop_session" -> {
-                            closePictureViewMode()
-                            repository.getDevice()?.name?.let { viewState.showConnectedWithMessage(it) }
+                    },
+                    {
+                        dataIsTransmitting = false
+                        changeDeviceStatus(device, ConnectingStatus.NOT_CONNECTED)
+                        closePictureViewMode()
+                        viewState.showDeviceIsNotConnectedMessage()
+                        val errorMessage = it.message
+                        errorMessage?.let { message ->
+                            viewState.showDataTransmittingExceptionToast(message)
+                            Logger.e("ViewerPresenter startDataTransmitting; data transmitting exception: $errorMessage")
                         }
-                    }
-                },
-                {
-                    dataIsTransmitting = false
-                    changeDeviceStatus(device, ConnectingStatus.NOT_CONNECTED)
-                    closePictureViewMode()
-                    viewState.showDeviceIsNotConnectedMessage()
-                    val errorMessage = it.message
-                    errorMessage?.let { message ->
-                        viewState.showDataTransmittingExceptionToast(message)
-                        Logger.e("ViewerPresenter startDataTransmitting; data transmitting exception: $errorMessage")
-                    }
-                    println("Data transmitting exception: ${it.message}")
-                    bluetoothService.stopDataTransmitting()
-                },
-                {
-                    println("Data transmitting complete")
-                }))
+                        println("Data transmitting exception: ${it.message}")
+                        bluetoothService.stopDataTransmitting()
+                    },
+                    {
+                        println("Data transmitting complete")
+                    })
+        )
     }
+
+    private fun prepareToneAudioIfEnable(tone: Boolean) = Completable.fromRunnable {
+            viewState.prepareToneAudioIfEnable(tone) }
+
+    private fun prepareImage(imageName: String, subtype: String) = Completable.fromRunnable {
+            viewState.prepareImage(imageName, subtype) }
+
+    private fun prepareAudio(audioName: String): Completable = Completable.fromRunnable {
+            viewState.prepareAudio(audioName) }
 
     private fun openPictureViewMode(){
         viewState.hideTextView()
@@ -152,8 +179,10 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
     private fun changeDeviceStatus(device: Device, status: ConnectingStatus){
         device.status = status
         repository.saveDevice(device)
-        Logger.d("ViewerPresenter changeDeviceStatus; new status: $status, " +
-                "device ${device.name} saved to repo")
+        Logger.d(
+            "ViewerPresenter changeDeviceStatus; new status: $status, " +
+                    "device ${device.name} saved to repo"
+        )
     }
 
     fun backClick(): Boolean {
@@ -177,21 +206,29 @@ class ViewerPresenter: MvpPresenter<ViewerView>() {
     fun fabReconnectClicked() {
         val device = repository.getDevice()
         if (device != null) {
-            Logger.d("ViewerPresenter fabReconnectClicked; device from repo != null, " +
-                    "status = ${device.status}")
+            Logger.d(
+                "ViewerPresenter fabReconnectClicked; device from repo != null, " +
+                        "status = ${device.status}"
+            )
             if (device.status == ConnectingStatus.NOT_CONNECTED) tryToConnect(device)
             else viewState.showDeviceConnectedToast()
         }
         else if (currentDeviceFromSharedPrefs != null && currentDeviceFromSharedPrefs!!.address != ""){
-            Logger.d("ViewerPresenter fabReconnectClicked; device from repo = $device, " +
-                    "currentDeviceFromSharedPrefs != null")
+            Logger.d(
+                "ViewerPresenter fabReconnectClicked; device from repo = $device, " +
+                        "currentDeviceFromSharedPrefs != null"
+            )
             tryToConnect(currentDeviceFromSharedPrefs!!)
         } else {
-            if(currentDeviceFromSharedPrefs == null) Logger.d("ViewerPresenter " +
-                    "fabReconnectClicked; device from repo = $device, " +
-                    "currentDeviceFromSharedPrefs = null")
-            else Logger.d("ViewerPresenter fabReconnectClicked; device from repo = $device," +
-                    " currentDeviceFromSharedPrefs address = ${currentDeviceFromSharedPrefs!!.address}")
+            if(currentDeviceFromSharedPrefs == null) Logger.d(
+                "ViewerPresenter " +
+                        "fabReconnectClicked; device from repo = $device, " +
+                        "currentDeviceFromSharedPrefs = null"
+            )
+            else Logger.d(
+                "ViewerPresenter fabReconnectClicked; device from repo = $device," +
+                        " currentDeviceFromSharedPrefs address = ${currentDeviceFromSharedPrefs!!.address}"
+            )
             viewState.showChooseDeviceToast()
         }
     }

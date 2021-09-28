@@ -19,7 +19,7 @@ fun createLoggerWithDiskLogAdapter(context: Context, tag: String) {
                     DiskLogHandler(
                         file.absolutePath,
                         BuildConfig.APPLICATION_ID,
-                        100 * 1024
+                        200 * 1024
                     )
                 )
             )

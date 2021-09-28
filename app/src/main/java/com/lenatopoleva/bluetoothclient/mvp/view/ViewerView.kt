@@ -11,7 +11,6 @@ interface ViewerView: MvpView {
     fun hideActionBar()
     fun showAppBar()
     fun showActionBar()
-    fun showImage(imageName: String, subtype: String)
     fun hideTextView()
     fun showImageView()
     fun hideImageView()
@@ -19,8 +18,13 @@ interface ViewerView: MvpView {
     fun hideFab()
     fun showFab()
 
-    @Skip fun startAudio(audioName: String)
-    @Skip fun startToneAudioIfEnable(tone: Boolean)
+    fun prepareImage(imageName: String, subtype: String)
+    fun showImage()
+
+    @Skip fun prepareToneAudioIfEnable(tone: Boolean)
+    @Skip fun prepareAudio(audioName: String)
+    @Skip fun startToneIfEnable(tone: Boolean)
+    @Skip fun startAudio()
     @Skip fun openChooseFileAlertDialog()
     @Skip fun openFilePicker()
 
@@ -33,6 +37,5 @@ interface ViewerView: MvpView {
     @Skip fun showDataTransmittingExceptionToast(exceptionMessage: String)
     @Skip fun showUnableToConnectDeviceToast(deviceNameAndError: String)
     @Skip fun showChooseDeviceToast()
-
 
 }
