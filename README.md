@@ -32,6 +32,11 @@ tone-tone.wav
 
 Для подключения к серверу, надо нажать кнопку bluetooth в меню, которая открывает список всех доступных устройств. При успешном подключении, MAC-адрес сервера также сохраняется в SP.
 
-![Main page](/../readme/res/readme/bc_main.jpg)
+<img src="/../readme/app/src/main/res/readme/bc_main.jpg" width="300" height="600">
+<img src="/../readme/app/src/main/res/readme/bc_bluetooth_list.jpg" width="300" height="600">
+<img src="/../readme/app/src/main/res/readme/bc_pick_dir.jpg" width="300" height="600">
+
+
+
 
 
